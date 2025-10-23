@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion de Stock - IT Assets</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>📦 Gestion de Stock IT</h1>
+            <p>Gérez vos actifs informatiques en toute simplicité</p>
+        </header>
+
+        <!-- Statistics Dashboard -->
+        <section class="stats-section">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-items">0</div>
+                    <div class="stat-label">Articles différents</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-units">0</div>
+                    <div class="stat-label">Unités totales</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-in-stock">0</div>
+                    <div class="stat-label">En stock</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">❌</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-out-stock">0</div>
+                    <div class="stat-label">Épuisés</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-value">0 CHF</div>
+                    <div class="stat-label">Valeur totale</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Action Buttons -->
+        <section class="action-section">
+            <button class="btn btn-primary" onclick="showAddItemModal()">➕ Ajouter un Article</button>
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="🔍 Rechercher (nom, modèle, catégorie, n° série, emplacement...)" oninput="filterItems()">
+            </div>
+            <select id="category-filter" onchange="filterItems()">
+                <option value="">Toutes les catégories</option>
+                <option value="informatique">🖥️ Informatique</option>
+                <option value="peripheriques">🖱️ Périphériques</option>
+                <option value="ecrans">📺 Écrans</option>
+                <option value="connectique">🔌 Connectique</option>
+                <option value="alimentation">🔋 Alimentation</option>
+                <option value="docking">🔗 Docking & Hubs</option>
+                <option value="audio">🎧 Audio</option>
+                <option value="reseau">📡 Réseau</option>
+                <option value="stockage">💾 Stockage</option>
+                <option value="mobile">📱 Mobile</option>
+            </select>
+        </section>
+
+        <!-- Items Grid -->
+        <section class="items-section" id="items-container">
+            <!-- Items will be dynamically inserted here -->
+        </section>
+
+        <!-- Add Item Modal -->
+        <div id="add-item-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Ajouter un Article</h2>
+                    <span class="close" onclick="closeAddItemModal()">&times;</span>
+                </div>
+                <form id="add-item-form" onsubmit="addItem(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-name">Nom de l'article *</label>
+                            <input type="text" id="item-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="item-model">Modèle / Spécifications</label>
+                            <input type="text" id="item-model">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-quantity">Quantité initiale *</label>
+                            <input type="number" id="item-quantity" value="0" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="item-category">Catégorie *</label>
+                            <select id="item-category" required>
+                                <option value="informatique">🖥️ Informatique</option>
+                                <option value="peripheriques">🖱️ Périphériques</option>
+                                <option value="ecrans">📺 Écrans</option>
+                                <option value="connectique">🔌 Connectique</option>
+                                <option value="alimentation">🔋 Alimentation</option>
+                                <option value="docking">🔗 Docking & Hubs</option>
+                                <option value="audio">🎧 Audio</option>
+                                <option value="reseau">📡 Réseau</option>
+                                <option value="stockage">💾 Stockage</option>
+                                <option value="mobile">📱 Mobile</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-serial">N° de série</label>
+                            <input type="text" id="item-serial">
+                        </div>
+                        <div class="form-group">
+                            <label for="item-location">Emplacement physique</label>
+                            <input type="text" id="item-location">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-supplier">Fournisseur</label>
+                            <input type="text" id="item-supplier">
+                        </div>
+                        <div class="form-group">
+                            <label for="item-purchase-date">Date d'achat</label>
+                            <input type="date" id="item-purchase-date">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-price">Prix unitaire (CHF)</label>
+                            <input type="number" id="item-price" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="item-photo">Emoji Photo (ex: 💻)</label>
+                            <input type="text" id="item-photo" maxlength="2">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="item-notes">Notes / Commentaires</label>
+                        <textarea id="item-notes" rows="3"></textarea>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeAddItemModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Ajouter l'article</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Item Modal -->
+        <div id="edit-item-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Modifier l'Article</h2>
+                    <span class="close" onclick="closeEditItemModal()">&times;</span>
+                </div>
+                <form id="edit-item-form" onsubmit="updateItem(event)">
+                    <input type="hidden" id="edit-item-id">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-item-name">Nom de l'article *</label>
+                            <input type="text" id="edit-item-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-item-model">Modèle / Spécifications</label>
+                            <input type="text" id="edit-item-model">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-item-category">Catégorie *</label>
+                            <select id="edit-item-category" required>
+                                <option value="informatique">🖥️ Informatique</option>
+                                <option value="peripheriques">🖱️ Périphériques</option>
+                                <option value="ecrans">📺 Écrans</option>
+                                <option value="connectique">🔌 Connectique</option>
+                                <option value="alimentation">🔋 Alimentation</option>
+                                <option value="docking">🔗 Docking & Hubs</option>
+                                <option value="audio">🎧 Audio</option>
+                                <option value="reseau">📡 Réseau</option>
+                                <option value="stockage">💾 Stockage</option>
+                                <option value="mobile">📱 Mobile</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-item-serial">N° de série</label>
+                            <input type="text" id="edit-item-serial">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-item-location">Emplacement physique</label>
+                            <input type="text" id="edit-item-location">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-item-supplier">Fournisseur</label>
+                            <input type="text" id="edit-item-supplier">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-item-purchase-date">Date d'achat</label>
+                            <input type="date" id="edit-item-purchase-date">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-item-price">Prix unitaire (CHF)</label>
+                            <input type="number" id="edit-item-price" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-item-photo">Emoji Photo (ex: 💻)</label>
+                            <input type="text" id="edit-item-photo" maxlength="2">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-item-notes">Notes / Commentaires</label>
+                        <textarea id="edit-item-notes" rows="3"></textarea>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditItemModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Adjust Stock Modal -->
+        <div id="adjust-stock-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Ajuster le Stock</h2>
+                    <span class="close" onclick="closeAdjustStockModal()">&times;</span>
+                </div>
+                <div id="adjust-item-info" class="adjust-info"></div>
+                <form id="adjust-stock-form" onsubmit="adjustStock(event)">
+                    <input type="hidden" id="adjust-item-id">
+
+                    <div class="form-group">
+                        <label>Type d'ajustement</label>
+                        <div class="adjustment-buttons">
+                            <button type="button" class="btn btn-success" onclick="setAdjustmentType('add')">➕ Ajouter</button>
+                            <button type="button" class="btn btn-danger" onclick="setAdjustmentType('remove')">➖ Retirer</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adjust-quantity">Quantité *</label>
+                        <input type="number" id="adjust-quantity" min="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adjust-note">Note / Raison</label>
+                        <textarea id="adjust-note" rows="3" placeholder="Ex: Nouvelle commande reçue, Matériel prêté à Jean, etc."></textarea>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeAdjustStockModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Confirmer l'ajustement</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- History Modal -->
+        <div id="history-modal" class="modal">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h2>Historique des Mouvements</h2>
+                    <span class="close" onclick="closeHistoryModal()">&times;</span>
+                </div>
+                <div id="history-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
