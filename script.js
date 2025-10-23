@@ -2,6 +2,9 @@
 let items = [];
 let currentAdjustmentType = 'add';
 
+// API Base URL
+const API_URL = window.location.origin;
+
 // Category Icons Map
 const categoryIcons = {
     'informatique': '🖥️',
@@ -33,19 +36,105 @@ const categoryLabels = {
 // Initialize app on load
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
-    renderItems();
-    updateStatistics();
 });
 
-// Data Persistence Functions
-function saveData() {
-    localStorage.setItem('inventoryItems', JSON.stringify(items));
+// API Functions
+async function loadData() {
+    try {
+        const response = await fetch(`${API_URL}/api/items`);
+        if (!response.ok) throw new Error('Failed to load items');
+        items = await response.json();
+
+        // Get history for each item
+        for (let item of items) {
+            const historyResponse = await fetch(`${API_URL}/api/items/${item.id}/history`);
+            if (historyResponse.ok) {
+                item.history = await historyResponse.json();
+            } else {
+                item.history = [];
+            }
+        }
+
+        renderItems();
+        updateStatistics();
+    } catch (error) {
+        console.error('Error loading data:', error);
+        showError('Erreur lors du chargement des données');
+    }
 }
 
-function loadData() {
-    const savedData = localStorage.getItem('inventoryItems');
-    if (savedData) {
-        items = JSON.parse(savedData);
+async function saveItem(item) {
+    try {
+        const response = await fetch(`${API_URL}/api/items`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(item)
+        });
+
+        if (!response.ok) throw new Error('Failed to save item');
+        return await response.json();
+    } catch (error) {
+        console.error('Error saving item:', error);
+        showError('Erreur lors de l\'enregistrement de l\'article');
+        throw error;
+    }
+}
+
+async function updateItemAPI(itemId, itemData) {
+    try {
+        const response = await fetch(`${API_URL}/api/items/${itemId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(itemData)
+        });
+
+        if (!response.ok) throw new Error('Failed to update item');
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating item:', error);
+        showError('Erreur lors de la mise à jour de l\'article');
+        throw error;
+    }
+}
+
+async function deleteItemAPI(itemId) {
+    try {
+        const response = await fetch(`${API_URL}/api/items/${itemId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Failed to delete item');
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting item:', error);
+        showError('Erreur lors de la suppression de l\'article');
+        throw error;
+    }
+}
+
+async function adjustStockAPI(itemId, adjustmentData) {
+    try {
+        const response = await fetch(`${API_URL}/api/items/${itemId}/adjust`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(adjustmentData)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to adjust stock');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error adjusting stock:', error);
+        showError(error.message || 'Erreur lors de l\'ajustement du stock');
+        throw error;
     }
 }
 
@@ -70,7 +159,7 @@ function showEditItemModal(itemId) {
     document.getElementById('edit-item-serial').value = item.serial || '';
     document.getElementById('edit-item-location').value = item.location || '';
     document.getElementById('edit-item-supplier').value = item.supplier || '';
-    document.getElementById('edit-item-purchase-date').value = item.purchaseDate || '';
+    document.getElementById('edit-item-purchase-date').value = item.purchase_date || '';
     document.getElementById('edit-item-price').value = item.price || '';
     document.getElementById('edit-item-photo').value = item.photo || '';
     document.getElementById('edit-item-notes').value = item.notes || '';
@@ -126,7 +215,7 @@ function showHistoryModal(itemId) {
                     <div class="history-content">
                         <div class="history-type ${typeClass}">${typeLabel} de ${entry.quantity} unité(s)</div>
                         <div class="history-details">
-                            Stock: ${entry.previousQuantity} → ${entry.newQuantity}
+                            Stock: ${entry.previous_quantity} → ${entry.new_quantity}
                         </div>
                         ${entry.note ? `<div class="history-note">${entry.note}</div>` : ''}
                         <div class="history-date">${formatDate(entry.date)}</div>
@@ -150,7 +239,7 @@ function setAdjustmentType(type) {
 }
 
 // Item Management Functions
-function addItem(event) {
+async function addItem(event) {
     event.preventDefault();
 
     const newItem = {
@@ -165,110 +254,83 @@ function addItem(event) {
         purchaseDate: document.getElementById('item-purchase-date').value,
         price: parseFloat(document.getElementById('item-price').value) || 0,
         photo: document.getElementById('item-photo').value,
-        notes: document.getElementById('item-notes').value,
-        history: [],
-        createdAt: new Date().toISOString()
+        notes: document.getElementById('item-notes').value
     };
 
-    // Add initial stock entry to history if quantity > 0
-    if (newItem.quantity > 0) {
-        newItem.history.push({
-            type: 'add',
-            quantity: newItem.quantity,
-            previousQuantity: 0,
-            newQuantity: newItem.quantity,
-            note: 'Stock initial',
-            date: new Date().toISOString()
-        });
+    try {
+        await saveItem(newItem);
+        await loadData();
+        closeAddItemModal();
+        showSuccess('Article ajouté avec succès');
+    } catch (error) {
+        // Error already handled in saveItem
     }
-
-    items.push(newItem);
-    saveData();
-    renderItems();
-    updateStatistics();
-    closeAddItemModal();
 }
 
-function updateItem(event) {
+async function updateItem(event) {
     event.preventDefault();
 
     const itemId = document.getElementById('edit-item-id').value;
-    const item = items.find(i => i.id === itemId);
 
-    if (!item) return;
+    const itemData = {
+        name: document.getElementById('edit-item-name').value,
+        model: document.getElementById('edit-item-model').value,
+        category: document.getElementById('edit-item-category').value,
+        serial: document.getElementById('edit-item-serial').value,
+        location: document.getElementById('edit-item-location').value,
+        supplier: document.getElementById('edit-item-supplier').value,
+        purchaseDate: document.getElementById('edit-item-purchase-date').value,
+        price: parseFloat(document.getElementById('edit-item-price').value) || 0,
+        photo: document.getElementById('edit-item-photo').value,
+        notes: document.getElementById('edit-item-notes').value
+    };
 
-    item.name = document.getElementById('edit-item-name').value;
-    item.model = document.getElementById('edit-item-model').value;
-    item.category = document.getElementById('edit-item-category').value;
-    item.serial = document.getElementById('edit-item-serial').value;
-    item.location = document.getElementById('edit-item-location').value;
-    item.supplier = document.getElementById('edit-item-supplier').value;
-    item.purchaseDate = document.getElementById('edit-item-purchase-date').value;
-    item.price = parseFloat(document.getElementById('edit-item-price').value) || 0;
-    item.photo = document.getElementById('edit-item-photo').value;
-    item.notes = document.getElementById('edit-item-notes').value;
-    item.updatedAt = new Date().toISOString();
-
-    saveData();
-    renderItems();
-    updateStatistics();
-    closeEditItemModal();
+    try {
+        await updateItemAPI(itemId, itemData);
+        await loadData();
+        closeEditItemModal();
+        showSuccess('Article modifié avec succès');
+    } catch (error) {
+        // Error already handled in updateItemAPI
+    }
 }
 
-function deleteItem(itemId) {
+async function deleteItem(itemId) {
     const item = items.find(i => i.id === itemId);
     if (!item) return;
 
     if (confirm(`Êtes-vous sûr de vouloir supprimer "${item.name}" ?`)) {
-        items = items.filter(i => i.id !== itemId);
-        saveData();
-        renderItems();
-        updateStatistics();
+        try {
+            await deleteItemAPI(itemId);
+            await loadData();
+            showSuccess('Article supprimé avec succès');
+        } catch (error) {
+            // Error already handled in deleteItemAPI
+        }
     }
 }
 
-function adjustStock(event) {
+async function adjustStock(event) {
     event.preventDefault();
 
     const itemId = document.getElementById('adjust-item-id').value;
-    const item = items.find(i => i.id === itemId);
-
-    if (!item) return;
-
     const quantity = parseInt(document.getElementById('adjust-quantity').value) || 0;
     const note = document.getElementById('adjust-note').value;
-    const previousQuantity = item.quantity;
 
-    if (currentAdjustmentType === 'add') {
-        item.quantity += quantity;
-    } else {
-        if (item.quantity < quantity) {
-            alert('Impossible de retirer plus d\'unités que le stock disponible.');
-            return;
-        }
-        item.quantity -= quantity;
-    }
-
-    // Add to history
-    if (!item.history) {
-        item.history = [];
-    }
-
-    item.history.push({
+    const adjustmentData = {
         type: currentAdjustmentType,
         quantity: quantity,
-        previousQuantity: previousQuantity,
-        newQuantity: item.quantity,
-        note: note,
-        date: new Date().toISOString()
-    });
+        note: note
+    };
 
-    item.lastAdjustment = new Date().toISOString();
-
-    saveData();
-    renderItems();
-    updateStatistics();
-    closeAdjustStockModal();
+    try {
+        await adjustStockAPI(itemId, adjustmentData);
+        await loadData();
+        closeAdjustStockModal();
+        showSuccess('Stock ajusté avec succès');
+    } catch (error) {
+        // Error already handled in adjustStockAPI
+    }
 }
 
 // Rendering Functions
@@ -428,6 +490,15 @@ function formatDate(dateString) {
         hour: '2-digit',
         minute: '2-digit'
     }).format(date);
+}
+
+function showSuccess(message) {
+    // Simple alert for now - could be replaced with a toast notification
+    console.log('Success:', message);
+}
+
+function showError(message) {
+    alert(message);
 }
 
 // Close modals when clicking outside
