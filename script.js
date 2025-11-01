@@ -964,6 +964,79 @@ function filterLoans() {
     container.innerHTML = html;
 }
 
+// Export Functions
+function exportToCSV() {
+    if (items.length === 0) {
+        alert('Aucune donnée à exporter');
+        return;
+    }
+
+    // CSV headers
+    const headers = [
+        'Nom',
+        'Modèle',
+        'Catégorie',
+        'Quantité',
+        'Seuil d\'alerte',
+        'N° Série',
+        'Emplacement',
+        'Fournisseur',
+        'Date d\'achat',
+        'Prix unitaire (CHF)',
+        'Valeur totale (CHF)',
+        'Notes',
+        'Dernière modification'
+    ];
+
+    // Convert items to CSV rows
+    const rows = items.map(item => {
+        const lastMovement = item.history && item.history.length > 0
+            ? new Date(item.history[0].date).toLocaleDateString('fr-CH')
+            : 'N/A';
+
+        const totalValue = item.quantity * (item.price || 0);
+
+        return [
+            item.name || '',
+            item.model || '',
+            categoryLabels[item.category] || '',
+            item.quantity || 0,
+            item.alert_threshold || 5,
+            item.serial || '',
+            item.location || '',
+            item.supplier || '',
+            item.purchase_date || '',
+            item.price || 0,
+            totalValue.toFixed(2),
+            (item.notes || '').replace(/"/g, '""'), // Escape quotes
+            lastMovement
+        ];
+    });
+
+    // Build CSV content
+    let csvContent = '\uFEFF'; // UTF-8 BOM for Excel compatibility
+    csvContent += headers.map(h => `"${h}"`).join(',') + '\n';
+    csvContent += rows.map(row =>
+        row.map(cell => `"${cell}"`).join(',')
+    ).join('\n');
+
+    // Create download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    const date = new Date().toISOString().split('T')[0];
+    link.setAttribute('href', url);
+    link.setAttribute('download', `inventaire_${date}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showSuccess('Export CSV réussi!');
+}
+
 // View Management
 function setView(view) {
     currentView = view;
