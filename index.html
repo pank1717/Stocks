@@ -84,6 +84,7 @@
         <!-- Action Buttons -->
         <section class="action-section">
             <button class="btn btn-primary" onclick="showAddItemModal()">➕ Ajouter un Article</button>
+            <button class="btn btn-info" onclick="showLoansModal()">👤 Qui a quoi ?</button>
             <div class="search-container">
                 <input type="text" id="search-input" placeholder="🔍 Rechercher (nom, modèle, catégorie, n° série, emplacement...)" oninput="filterItems()">
             </div>
@@ -350,6 +351,27 @@
                     <span class="close" onclick="closeHistoryModal()">&times;</span>
                 </div>
                 <div id="history-content"></div>
+            </div>
+        </div>
+
+        <!-- Loans Modal (Qui a quoi ?) -->
+        <div id="loans-modal" class="modal">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h2>👤 Qui a quoi ? - Suivi des prêts</h2>
+                    <span class="close" onclick="closeLoansModal()">&times;</span>
+                </div>
+                <div style="padding: 20px;">
+                    <div class="loans-search">
+                        <input type="text" id="loans-search-input" placeholder="🔍 Rechercher par nom de personne..." oninput="filterLoans()">
+                        <select id="loans-status-filter" onchange="filterLoans()">
+                            <option value="all">Tous les prêts</option>
+                            <option value="active">Prêts en cours</option>
+                            <option value="overdue">En retard</option>
+                        </select>
+                    </div>
+                    <div id="loans-content"></div>
+                </div>
             </div>
         </div>
     </div>

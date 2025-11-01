@@ -726,6 +726,144 @@ function showError(message) {
     alert(message);
 }
 
+// Loans Management Functions
+let allLoans = [];
+
+function showLoansModal() {
+    loadLoans();
+    document.getElementById('loans-modal').classList.add('show');
+}
+
+function closeLoansModal() {
+    document.getElementById('loans-modal').classList.remove('show');
+}
+
+function loadLoans() {
+    // Collect all loans from history (removals with person)
+    allLoans = [];
+
+    items.forEach(item => {
+        if (item.history && item.history.length > 0) {
+            item.history.forEach(entry => {
+                if (entry.type === 'remove' && entry.person) {
+                    allLoans.push({
+                        itemId: item.id,
+                        itemName: item.name,
+                        itemPhoto: item.photo || categoryIcons[item.category],
+                        person: entry.person,
+                        quantity: entry.quantity,
+                        date: entry.date,
+                        expectedReturnDate: entry.expected_return_date,
+                        note: entry.note
+                    });
+                }
+            });
+        }
+    });
+
+    // Sort by date (newest first)
+    allLoans.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    filterLoans();
+}
+
+function filterLoans() {
+    const searchTerm = document.getElementById('loans-search-input').value.toLowerCase();
+    const statusFilter = document.getElementById('loans-status-filter').value;
+    const container = document.getElementById('loans-content');
+
+    let filteredLoans = allLoans.filter(loan => {
+        const matchesSearch = !searchTerm || loan.person.toLowerCase().includes(searchTerm);
+
+        let matchesStatus = true;
+        if (statusFilter === 'active') {
+            // Active: has expected return date and not overdue, or no return date
+            if (loan.expectedReturnDate) {
+                const returnDate = new Date(loan.expectedReturnDate);
+                const today = new Date();
+                matchesStatus = returnDate >= today;
+            }
+        } else if (statusFilter === 'overdue') {
+            // Overdue: has expected return date and is past due
+            if (loan.expectedReturnDate) {
+                const returnDate = new Date(loan.expectedReturnDate);
+                const today = new Date();
+                matchesStatus = returnDate < today;
+            } else {
+                matchesStatus = false;
+            }
+        }
+
+        return matchesSearch && matchesStatus;
+    });
+
+    if (filteredLoans.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="color: #666;">
+                <div class="empty-state-icon">📦</div>
+                <h3>Aucun prêt trouvé</h3>
+                <p>Aucun article n'a été prêté avec les critères sélectionnés</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Group loans by person
+    const loansByPerson = {};
+    filteredLoans.forEach(loan => {
+        if (!loansByPerson[loan.person]) {
+            loansByPerson[loan.person] = [];
+        }
+        loansByPerson[loan.person].push(loan);
+    });
+
+    let html = '<div class="loans-list">';
+
+    Object.entries(loansByPerson).forEach(([person, loans]) => {
+        const totalItems = loans.reduce((sum, loan) => sum + loan.quantity, 0);
+
+        html += `
+            <div class="loan-person-group">
+                <div class="loan-person-header">
+                    <div class="loan-person-name">👤 ${person}</div>
+                    <div class="loan-person-stats">${loans.length} article(s) • ${totalItems} unité(s)</div>
+                </div>
+                <div class="loan-items-list">
+        `;
+
+        loans.forEach(loan => {
+            const isOverdue = loan.expectedReturnDate && new Date(loan.expectedReturnDate) < new Date();
+            const returnDateStr = loan.expectedReturnDate
+                ? `📅 Retour prévu: ${formatDate(loan.expectedReturnDate)}`
+                : '📅 Pas de date de retour';
+
+            html += `
+                <div class="loan-item ${isOverdue ? 'loan-overdue' : ''}">
+                    <div class="loan-item-icon">${loan.itemPhoto}</div>
+                    <div class="loan-item-content">
+                        <div class="loan-item-name">${loan.itemName}</div>
+                        <div class="loan-item-details">
+                            <div>${loan.quantity} unité(s) • Prêté le ${formatDate(loan.date)}</div>
+                            <div class="${isOverdue ? 'loan-overdue-text' : ''}">${returnDateStr}</div>
+                            ${loan.note ? `<div class="loan-item-note">${loan.note}</div>` : ''}
+                        </div>
+                    </div>
+                    ${isOverdue ? '<div class="loan-overdue-badge">⚠️ En retard</div>' : ''}
+                </div>
+            `;
+        });
+
+        html += `
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+
+    container.innerHTML = html;
+}
+
 // Close modals when clicking outside
 window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
