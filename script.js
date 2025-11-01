@@ -115,10 +115,21 @@ function hasPermission(permission) {
     return PERMISSIONS[currentUser.role]?.[permission] || false;
 }
 
-// Initialize currentUser as admin if not set (for demo purposes)
-if (!currentUser) {
-    currentUser = users[0]; // Default to admin
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+// Check authentication before loading app
+const isAuthenticated = localStorage.getItem('isAuthenticated');
+if (!isAuthenticated || isAuthenticated !== 'true' || !currentUser) {
+    // Not authenticated, redirect to login
+    window.location.href = 'login.html';
+    throw new Error('Not authenticated'); // Stop script execution
+}
+
+// Add logout function
+function logout() {
+    if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('currentUser');
+        window.location.href = 'login.html';
+    }
 }
 
 function updateUserInterface() {

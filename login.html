@@ -23,158 +23,278 @@
 
         .login-container {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 60px 50px;
-            max-width: 450px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
             width: 100%;
+            max-width: 420px;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-header {
             text-align: center;
+            margin-bottom: 30px;
         }
 
-        .logo {
-            font-size: 80px;
-            margin-bottom: 20px;
-        }
-
-        h1 {
+        .login-header h1 {
             color: #333;
-            font-size: 28px;
+            font-size: 2rem;
             margin-bottom: 10px;
         }
 
-        p {
+        .login-header p {
             color: #666;
-            font-size: 16px;
-            margin-bottom: 40px;
+            font-size: 0.95rem;
         }
 
-        .microsoft-btn {
-            background: white;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            padding: 16px 32px;
-            font-size: 16px;
-            font-weight: 600;
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
             color: #333;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .form-group input {
             width: 100%;
-            text-decoration: none;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
         }
 
-        .microsoft-btn:hover {
-            border-color: #0078d4;
-            background: #f3f9ff;
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
 
-        .microsoft-btn:active {
+        .btn-login:active {
             transform: translateY(0);
         }
 
-        .microsoft-icon {
-            width: 24px;
-            height: 24px;
+        .error-message {
+            background: #ffe6e6;
+            color: #d32f2f;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #d32f2f;
+            display: none;
+            font-size: 0.9rem;
         }
 
-        .features {
-            margin-top: 50px;
-            text-align: left;
+        .error-message.show {
+            display: block;
+            animation: shake 0.5s;
         }
 
-        .feature {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 16px;
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
         }
 
-        .feature-icon {
-            font-size: 20px;
-            margin-top: 2px;
+        .demo-credentials {
+            background: #f5f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 25px;
+            border: 1px solid #d0d7ff;
         }
 
-        .feature-text {
-            color: #555;
-            font-size: 14px;
+        .demo-credentials h3 {
+            color: #667eea;
+            font-size: 0.95rem;
+            margin-bottom: 10px;
         }
 
-        .footer {
-            margin-top: 40px;
-            padding-top: 30px;
-            border-top: 1px solid #eee;
-            color: #999;
-            font-size: 12px;
+        .demo-credentials p {
+            color: #666;
+            font-size: 0.85rem;
+            margin: 5px 0;
         }
 
-        @media (max-width: 480px) {
-            .login-container {
-                padding: 40px 30px;
-            }
+        .demo-credentials code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #667eea;
+            font-weight: 600;
+        }
 
-            h1 {
-                font-size: 24px;
-            }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 15px;
+            color: #667eea;
+        }
 
-            .logo {
-                font-size: 60px;
-            }
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
     <div class="login-container">
-        <div class="logo">📦</div>
-        <h1>Gestion de Stock IT</h1>
-        <p>Connectez-vous avec votre compte Microsoft</p>
-
-        <a href="/auth/signin" class="microsoft-btn">
-            <svg class="microsoft-icon" viewBox="0 0 23 23">
-                <path fill="#f3f3f3" d="M0 0h23v23H0z"/>
-                <path fill="#f35325" d="M1 1h10v10H1z"/>
-                <path fill="#81bc06" d="M12 1h10v10H12z"/>
-                <path fill="#05a6f0" d="M1 12h10v10H1z"/>
-                <path fill="#ffba08" d="M12 12h10v10H12z"/>
-            </svg>
-            Se connecter avec Microsoft
-        </a>
-
-        <div class="features">
-            <div class="feature">
-                <div class="feature-icon">🔒</div>
-                <div class="feature-text">
-                    <strong>Sécurisé</strong><br>
-                    Authentification Microsoft Azure AD
-                </div>
-            </div>
-
-            <div class="feature">
-                <div class="feature-icon">📊</div>
-                <div class="feature-text">
-                    <strong>Gestion complète</strong><br>
-                    Inventaire, ajustements, historique
-                </div>
-            </div>
-
-            <div class="feature">
-                <div class="feature-icon">💾</div>
-                <div class="feature-text">
-                    <strong>Sauvegarde automatique</strong><br>
-                    Toutes vos données sont sécurisées
-                </div>
-            </div>
+        <div class="login-header">
+            <div class="logo">📦</div>
+            <h1>Gestion de Stock IT</h1>
+            <p>Connectez-vous pour accéder à l'inventaire</p>
         </div>
 
-        <div class="footer">
-            Application de gestion de stock IT<br>
-            Powered by Microsoft Azure AD
+        <div id="error-message" class="error-message"></div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label for="username">Nom d'utilisateur</label>
+                <input type="text" id="username" name="username" required autocomplete="username" autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Mot de passe</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn-login">Se connecter</button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px;">Connexion en cours...</p>
+        </div>
+
+        <div class="demo-credentials">
+            <h3>🔑 Identifiants de démonstration</h3>
+            <p>👑 Admin: <code>admin</code> / <code>admin</code></p>
+            <p>👨‍💼 Manager: <code>demo_manager</code> / <code>demo</code></p>
+            <p>👁️ Viewer: <code>demo_viewer</code> / <code>demo</code></p>
         </div>
     </div>
+
+    <script>
+        // Load users from localStorage
+        let users = JSON.parse(localStorage.getItem('users') || '[]');
+
+        // Initialize default admin if no users exist
+        if (users.length === 0) {
+            users.push({
+                id: '1',
+                username: 'admin',
+                password: 'admin',
+                role: 'admin',
+                email: 'admin@example.com',
+                created: new Date().toISOString()
+            });
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+
+        const loginForm = document.getElementById('login-form');
+        const errorMessage = document.getElementById('error-message');
+        const loading = document.getElementById('loading');
+
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            // Hide previous error
+            errorMessage.classList.remove('show');
+            errorMessage.textContent = '';
+
+            // Show loading
+            loading.classList.add('show');
+            loginForm.style.opacity = '0.5';
+
+            // Simulate network delay for better UX
+            setTimeout(() => {
+                // Find user
+                const user = users.find(u => u.username === username && u.password === password);
+
+                if (user) {
+                    // Login successful
+                    localStorage.setItem('currentUser', JSON.stringify(user));
+                    localStorage.setItem('isAuthenticated', 'true');
+
+                    // Redirect to main app
+                    window.location.href = 'index.html';
+                } else {
+                    // Login failed
+                    loading.classList.remove('show');
+                    loginForm.style.opacity = '1';
+                    errorMessage.textContent = '❌ Nom d\'utilisateur ou mot de passe incorrect';
+                    errorMessage.classList.add('show');
+
+                    // Clear password field
+                    document.getElementById('password').value = '';
+                    document.getElementById('password').focus();
+                }
+            }, 800);
+        });
+
+        // Check if already authenticated
+        const isAuthenticated = localStorage.getItem('isAuthenticated');
+        const currentUser = localStorage.getItem('currentUser');
+
+        if (isAuthenticated === 'true' && currentUser) {
+            // Already logged in, redirect to main app
+            window.location.href = 'index.html';
+        }
+    </script>
 </body>
 </html>
+
