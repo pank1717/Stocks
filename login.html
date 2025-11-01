@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Gestion de Stock IT</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 60px 50px;
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+
+        .microsoft-btn {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            text-decoration: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .microsoft-btn:hover {
+            border-color: #0078d4;
+            background: #f3f9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .microsoft-btn:active {
+            transform: translateY(0);
+        }
+
+        .microsoft-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .features {
+            margin-top: 50px;
+            text-align: left;
+        }
+
+        .feature {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .feature-icon {
+            font-size: 20px;
+            margin-top: 2px;
+        }
+
+        .feature-text {
+            color: #555;
+            font-size: 14px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+            color: #999;
+            font-size: 12px;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 40px 30px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .logo {
+                font-size: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">📦</div>
+        <h1>Gestion de Stock IT</h1>
+        <p>Connectez-vous avec votre compte Microsoft</p>
+
+        <a href="/auth/signin" class="microsoft-btn">
+            <svg class="microsoft-icon" viewBox="0 0 23 23">
+                <path fill="#f3f3f3" d="M0 0h23v23H0z"/>
+                <path fill="#f35325" d="M1 1h10v10H1z"/>
+                <path fill="#81bc06" d="M12 1h10v10H12z"/>
+                <path fill="#05a6f0" d="M1 12h10v10H1z"/>
+                <path fill="#ffba08" d="M12 12h10v10H12z"/>
+            </svg>
+            Se connecter avec Microsoft
+        </a>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-text">
+                    <strong>Sécurisé</strong><br>
+                    Authentification Microsoft Azure AD
+                </div>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <div class="feature-text">
+                    <strong>Gestion complète</strong><br>
+                    Inventaire, ajustements, historique
+                </div>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">💾</div>
+                <div class="feature-text">
+                    <strong>Sauvegarde automatique</strong><br>
+                    Toutes vos données sont sécurisées
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Application de gestion de stock IT<br>
+            Powered by Microsoft Azure AD
+        </div>
+    </div>
+</body>
+</html>
