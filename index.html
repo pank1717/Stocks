@@ -424,6 +424,25 @@
         </div>
     </div>
 
+    <!-- QR Code Modal -->
+    <div id="qrcode-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Code QR de l'article</h2>
+                <span class="close" onclick="closeQRCodeModal()">&times;</span>
+            </div>
+            <div id="qrcode-content" style="padding: 20px; text-align: center;">
+                <div id="qrcode-item-info" style="margin-bottom: 20px;"></div>
+                <div id="qrcode-display" style="display: flex; justify-content: center;"></div>
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="printQRCode()">🖨️ Imprimer</button>
+                    <button class="btn btn-success" onclick="downloadQRCode()">💾 Télécharger</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

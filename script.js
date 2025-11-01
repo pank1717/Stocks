@@ -592,6 +592,9 @@ function renderItems() {
                     <button class="btn btn-info btn-small" onclick="showHistoryModal('${item.id}')">
                         📜 Historique
                     </button>
+                    <button class="btn btn-secondary btn-small" onclick="showQRCodeModal('${item.id}')">
+                        🔲 QR Code
+                    </button>
                     <button class="btn btn-warning btn-small" onclick="showEditItemModal('${item.id}')">
                         ✏️ Modifier
                     </button>
@@ -962,6 +965,155 @@ function filterLoans() {
     html += '</div>';
 
     container.innerHTML = html;
+}
+
+// QR Code Functions
+let currentQRCodeItem = null;
+
+function showQRCodeModal(itemId) {
+    const item = items.find(i => i.id === itemId);
+    if (!item) return;
+
+    currentQRCodeItem = item;
+
+    // Display item info
+    const photo = item.photo || categoryIcons[item.category] || '📦';
+    const infoHtml = `
+        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px;">
+            ${photo} ${item.name}
+        </div>
+        ${item.model ? `<div style="color: #666; margin-bottom: 5px;">${item.model}</div>` : ''}
+        <div style="color: #666; margin-bottom: 5px;">Stock: ${item.quantity} unités</div>
+        ${item.serial ? `<div style="color: #666;">N° Série: ${item.serial}</div>` : ''}
+    `;
+    document.getElementById('qrcode-item-info').innerHTML = infoHtml;
+
+    // Generate QR code data
+    const qrData = JSON.stringify({
+        id: item.id,
+        name: item.name,
+        model: item.model || '',
+        serial: item.serial || '',
+        category: item.category,
+        location: item.location || '',
+        url: window.location.href
+    });
+
+    // Clear previous QR code
+    const qrcodeDisplay = document.getElementById('qrcode-display');
+    qrcodeDisplay.innerHTML = '';
+
+    // Generate new QR code
+    QRCode.toCanvas(qrData, {
+        width: 300,
+        margin: 2,
+        color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+        }
+    }, (error, canvas) => {
+        if (error) {
+            console.error('Error generating QR code:', error);
+            qrcodeDisplay.innerHTML = '<p style="color: red;">Erreur lors de la génération du code QR</p>';
+            return;
+        }
+        qrcodeDisplay.appendChild(canvas);
+    });
+
+    document.getElementById('qrcode-modal').classList.add('show');
+}
+
+function closeQRCodeModal() {
+    document.getElementById('qrcode-modal').classList.remove('show');
+    currentQRCodeItem = null;
+}
+
+function printQRCode() {
+    if (!currentQRCodeItem) return;
+
+    const printWindow = window.open('', '', 'height=600,width=800');
+    const photo = currentQRCodeItem.photo || categoryIcons[currentQRCodeItem.category] || '📦';
+    const canvas = document.querySelector('#qrcode-display canvas');
+
+    if (!canvas) {
+        alert('Code QR non généré');
+        return;
+    }
+
+    const qrImageData = canvas.toDataURL();
+
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Code QR - ${currentQRCodeItem.name}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding: 20px;
+                }
+                .qr-label {
+                    text-align: center;
+                    margin-bottom: 20px;
+                }
+                .qr-label h2 {
+                    margin: 10px 0;
+                }
+                .qr-label .emoji {
+                    font-size: 3rem;
+                }
+                img {
+                    border: 2px solid #333;
+                    padding: 10px;
+                }
+                .info {
+                    margin-top: 20px;
+                    text-align: center;
+                    color: #666;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="qr-label">
+                <div class="emoji">${photo}</div>
+                <h2>${currentQRCodeItem.name}</h2>
+                ${currentQRCodeItem.model ? `<p>${currentQRCodeItem.model}</p>` : ''}
+                ${currentQRCodeItem.serial ? `<p>N° Série: ${currentQRCodeItem.serial}</p>` : ''}
+            </div>
+            <img src="${qrImageData}" alt="QR Code" />
+            <div class="info">
+                <p>Catégorie: ${categoryLabels[currentQRCodeItem.category]}</p>
+                ${currentQRCodeItem.location ? `<p>Emplacement: ${currentQRCodeItem.location}</p>` : ''}
+            </div>
+        </body>
+        </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.focus();
+
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 250);
+}
+
+function downloadQRCode() {
+    if (!currentQRCodeItem) return;
+
+    const canvas = document.querySelector('#qrcode-display canvas');
+
+    if (!canvas) {
+        alert('Code QR non généré');
+        return;
+    }
+
+    const link = document.createElement('a');
+    link.download = `qrcode_${currentQRCodeItem.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
 }
 
 // Export Functions
