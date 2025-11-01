@@ -628,12 +628,58 @@
                 </div>
 
                 <div id="users-list" style="margin-top: 20px;">
-                    <h3>Utilisateurs enregistrés</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0;">Utilisateurs enregistrés</h3>
+                        <button class="btn btn-primary" onclick="showAddUserModal()">➕ Ajouter un utilisateur</button>
+                    </div>
                     <div id="users-table" class="users-table">
                         <!-- Users will be rendered here -->
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit User Modal -->
+    <div id="user-form-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="user-form-title">Ajouter un Utilisateur</h2>
+                <span class="close" onclick="closeUserFormModal()">&times;</span>
+            </div>
+            <form id="user-form" onsubmit="saveUser(event)">
+                <input type="hidden" id="user-edit-id">
+
+                <div class="form-group">
+                    <label for="user-username">Nom d'utilisateur *</label>
+                    <input type="text" id="user-username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="user-email">Email *</label>
+                    <input type="email" id="user-email" required>
+                </div>
+
+                <div class="form-group" id="user-password-group">
+                    <label for="user-password">Mot de passe *</label>
+                    <input type="password" id="user-password" minlength="4">
+                    <small style="color: #666;">Minimum 4 caractères</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="user-role">Rôle *</label>
+                    <select id="user-role" required>
+                        <option value="admin">👑 Administrateur (accès complet)</option>
+                        <option value="manager">👨‍💼 Gestionnaire (pas de suppression)</option>
+                        <option value="viewer">👁️ Lecteur (lecture seule)</option>
+                    </select>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeUserFormModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
         </div>
     </div>
 

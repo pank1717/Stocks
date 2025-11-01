@@ -376,7 +376,8 @@ function renderUsersTable() {
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Email</th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Rôle</th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Créé le</th>
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Actuel</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Statut</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -393,13 +394,142 @@ function renderUsersTable() {
                             ${new Date(user.created).toLocaleDateString('fr-CH')}
                         </td>
                         <td style="padding: 12px;">
-                            ${currentUser.id === user.id ? '✓ Connecté' : ''}
+                            ${currentUser.id === user.id ? '<span style="color: #28a745;">✓ Connecté</span>' : ''}
+                        </td>
+                        <td style="padding: 12px;">
+                            <button class="btn btn-small btn-warning" onclick="editUser('${user.id}')" title="Modifier">✏️</button>
+                            ${currentUser.id !== user.id ? `
+                                <button class="btn btn-small btn-danger" onclick="deleteUser('${user.id}')" title="Supprimer">🗑️</button>
+                            ` : ''}
                         </td>
                     </tr>
                 `).join('')}
             </tbody>
         </table>
     `;
+}
+
+function showAddUserModal() {
+    document.getElementById('user-form-title').textContent = 'Ajouter un Utilisateur';
+    document.getElementById('user-form').reset();
+    document.getElementById('user-edit-id').value = '';
+
+    // Password required for new users
+    const passwordInput = document.getElementById('user-password');
+    passwordInput.required = true;
+
+    document.getElementById('user-form-modal').classList.add('show');
+}
+
+function closeUserFormModal() {
+    document.getElementById('user-form-modal').classList.remove('show');
+}
+
+function editUser(userId) {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+
+    document.getElementById('user-form-title').textContent = 'Modifier l\'Utilisateur';
+    document.getElementById('user-edit-id').value = user.id;
+    document.getElementById('user-username').value = user.username;
+    document.getElementById('user-email').value = user.email;
+    document.getElementById('user-role').value = user.role;
+
+    // Password not required for edit (only if user wants to change it)
+    const passwordInput = document.getElementById('user-password');
+    passwordInput.required = false;
+    passwordInput.value = '';
+    passwordInput.placeholder = 'Laisser vide pour ne pas changer';
+
+    document.getElementById('user-form-modal').classList.add('show');
+}
+
+function saveUser(event) {
+    event.preventDefault();
+
+    const userId = document.getElementById('user-edit-id').value;
+    const username = document.getElementById('user-username').value;
+    const email = document.getElementById('user-email').value;
+    const password = document.getElementById('user-password').value;
+    const role = document.getElementById('user-role').value;
+
+    // Check if username already exists (except for current user when editing)
+    const existingUser = users.find(u => u.username === username && u.id !== userId);
+    if (existingUser) {
+        showToast('Erreur', 'Ce nom d\'utilisateur existe déjà', 'error');
+        return;
+    }
+
+    if (userId) {
+        // Update existing user
+        const index = users.findIndex(u => u.id === userId);
+        if (index !== -1) {
+            users[index].username = username;
+            users[index].email = email;
+            users[index].role = role;
+
+            // Only update password if provided
+            if (password) {
+                users[index].password = password;
+            }
+
+            // If editing current user, update currentUser object
+            if (currentUser.id === userId) {
+                currentUser = users[index];
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateUserInterface();
+            }
+
+            showToast('Succès', 'Utilisateur modifié avec succès', 'success');
+        }
+    } else {
+        // Add new user
+        if (!password) {
+            showToast('Erreur', 'Le mot de passe est requis pour un nouvel utilisateur', 'error');
+            return;
+        }
+
+        const newUser = {
+            id: Date.now().toString(),
+            username: username,
+            email: email,
+            password: password,
+            role: role,
+            created: new Date().toISOString()
+        };
+
+        users.push(newUser);
+        showToast('Succès', 'Utilisateur ajouté avec succès', 'success');
+    }
+
+    localStorage.setItem('users', JSON.stringify(users));
+    closeUserFormModal();
+    renderUsersTable();
+}
+
+function deleteUser(userId) {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+
+    // Prevent deleting yourself
+    if (currentUser.id === userId) {
+        showToast('Erreur', 'Vous ne pouvez pas supprimer votre propre compte', 'error');
+        return;
+    }
+
+    // Prevent deleting the last admin
+    const adminCount = users.filter(u => u.role === 'admin').length;
+    if (user.role === 'admin' && adminCount <= 1) {
+        showToast('Erreur', 'Impossible de supprimer le dernier administrateur', 'error');
+        return;
+    }
+
+    if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur "${user.username}" ?`)) {
+        users = users.filter(u => u.id !== userId);
+        localStorage.setItem('users', JSON.stringify(users));
+        renderUsersTable();
+        showToast('Succès', 'Utilisateur supprimé avec succès', 'success');
+    }
 }
 
 function switchRole(role) {
