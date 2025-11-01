@@ -2,6 +2,8 @@
 let items = [];
 let currentAdjustmentType = 'add';
 let currentStatusFilter = 'all';
+let currentView = 'grid'; // 'grid' or 'list'
+let currentTheme = localStorage.getItem('theme') || 'light';
 
 // API Base URL
 const API_URL = window.location.origin;
@@ -67,6 +69,7 @@ function handleLocationChange(prefix) {
 // Initialize app on load
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
+    initializeTheme();
 });
 
 // API Functions
@@ -454,6 +457,7 @@ function renderItems() {
 
     const searchTerm = document.getElementById('search-input').value.toLowerCase();
     const categoryFilter = document.getElementById('category-filter').value;
+    const sortOption = document.getElementById('sort-select').value;
 
     let filteredItems = items.filter(item => {
         const matchesSearch = !searchTerm ||
@@ -480,6 +484,9 @@ function renderItems() {
         return matchesSearch && matchesCategory && matchesStatus;
     });
 
+    // Apply sorting
+    filteredItems = sortItems(filteredItems, sortOption);
+
     if (filteredItems.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
@@ -490,6 +497,9 @@ function renderItems() {
         `;
         return;
     }
+
+    // Update view class on container
+    container.className = `items-section items-${currentView}`;
 
     container.innerHTML = filteredItems.map(item => {
         const alertThreshold = item.alert_threshold || 5;
@@ -596,6 +606,47 @@ function renderItems() {
 
 function filterItems() {
     renderItems();
+}
+
+// Sorting Function
+function sortItems(items, sortOption) {
+    const sorted = [...items];
+
+    switch (sortOption) {
+        case 'name-asc':
+            return sorted.sort((a, b) => a.name.localeCompare(b.name));
+        case 'name-desc':
+            return sorted.sort((a, b) => b.name.localeCompare(a.name));
+        case 'quantity-asc':
+            return sorted.sort((a, b) => a.quantity - b.quantity);
+        case 'quantity-desc':
+            return sorted.sort((a, b) => b.quantity - a.quantity);
+        case 'price-asc':
+            return sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
+        case 'price-desc':
+            return sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
+        case 'category':
+            return sorted.sort((a, b) => {
+                if (a.category === b.category) {
+                    return a.name.localeCompare(b.name);
+                }
+                return categoryLabels[a.category].localeCompare(categoryLabels[b.category]);
+            });
+        case 'recent':
+            return sorted.sort((a, b) => {
+                const aDate = a.history && a.history.length > 0 ? new Date(a.history[0].date) : new Date(0);
+                const bDate = b.history && b.history.length > 0 ? new Date(b.history[0].date) : new Date(0);
+                return bDate - aDate;
+            });
+        case 'oldest':
+            return sorted.sort((a, b) => {
+                const aDate = a.history && a.history.length > 0 ? new Date(a.history[0].date) : new Date();
+                const bDate = b.history && b.history.length > 0 ? new Date(b.history[0].date) : new Date();
+                return aDate - bDate;
+            });
+        default:
+            return sorted;
+    }
 }
 
 function updateStatistics() {
@@ -913,6 +964,35 @@ function filterLoans() {
     container.innerHTML = html;
 }
 
+// View Management
+function setView(view) {
+    currentView = view;
+
+    // Update button states
+    document.getElementById('view-grid').classList.toggle('active', view === 'grid');
+    document.getElementById('view-list').classList.toggle('active', view === 'list');
+
+    // Re-render items
+    renderItems();
+}
+
+// Theme Management
+function initializeTheme() {
+    if (currentTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+        document.getElementById('theme-toggle').innerHTML = '☀️ Mode clair';
+    } else {
+        document.body.classList.remove('dark-mode');
+        document.getElementById('theme-toggle').innerHTML = '🌙 Mode sombre';
+    }
+}
+
+function toggleTheme() {
+    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+    localStorage.setItem('theme', currentTheme);
+    initializeTheme();
+}
+
 // Close modals when clicking outside
 window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
@@ -927,5 +1007,35 @@ document.addEventListener('keydown', (e) => {
         document.querySelectorAll('.modal').forEach(modal => {
             modal.classList.remove('show');
         });
+    }
+
+    // Ctrl/Cmd + N: New item
+    if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        showAddItemModal();
+    }
+
+    // Ctrl/Cmd + K: Focus search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        document.getElementById('search-input').focus();
+    }
+
+    // Ctrl/Cmd + L: Toggle view
+    if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+        e.preventDefault();
+        setView(currentView === 'grid' ? 'list' : 'grid');
+    }
+
+    // Ctrl/Cmd + D: Toggle dark mode
+    if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        toggleTheme();
+    }
+
+    // Ctrl/Cmd + W: Show loans (Who has what)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
+        e.preventDefault();
+        showLoansModal();
     }
 });

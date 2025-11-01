@@ -12,6 +12,9 @@
         <header>
             <h1>📦 Gestion de Stock IT</h1>
             <p>Gérez vos actifs informatiques en toute simplicité</p>
+            <div class="keyboard-shortcuts-info">
+                ⌨️ Raccourcis: <kbd>Ctrl+N</kbd> Nouveau | <kbd>Ctrl+K</kbd> Rechercher | <kbd>Ctrl+L</kbd> Vue | <kbd>Ctrl+D</kbd> Thème | <kbd>Ctrl+W</kbd> Prêts
+            </div>
         </header>
 
         <!-- Statistics Dashboard -->
@@ -85,6 +88,7 @@
         <section class="action-section">
             <button class="btn btn-primary" onclick="showAddItemModal()">➕ Ajouter un Article</button>
             <button class="btn btn-info" onclick="showLoansModal()">👤 Qui a quoi ?</button>
+            <button class="btn btn-secondary" onclick="toggleTheme()" id="theme-toggle">🌙 Mode sombre</button>
             <div class="search-container">
                 <input type="text" id="search-input" placeholder="🔍 Rechercher (nom, modèle, catégorie, n° série, emplacement...)" oninput="filterItems()">
             </div>
@@ -101,6 +105,21 @@
                 <option value="stockage">💾 Stockage</option>
                 <option value="mobile">📱 Mobile</option>
             </select>
+            <select id="sort-select" onchange="filterItems()">
+                <option value="name-asc">📝 Nom (A-Z)</option>
+                <option value="name-desc">📝 Nom (Z-A)</option>
+                <option value="quantity-desc">📊 Stock (↑ élevé)</option>
+                <option value="quantity-asc">📊 Stock (↓ faible)</option>
+                <option value="price-desc">💰 Prix (↑ élevé)</option>
+                <option value="price-asc">💰 Prix (↓ faible)</option>
+                <option value="recent">🕒 Récent</option>
+                <option value="oldest">🕒 Ancien</option>
+                <option value="category">📁 Catégorie</option>
+            </select>
+            <div class="view-toggle">
+                <button class="btn btn-view active" id="view-grid" onclick="setView('grid')" title="Vue grille">⊞</button>
+                <button class="btn btn-view" id="view-list" onclick="setView('list')" title="Vue liste">☰</button>
+            </div>
         </section>
 
         <!-- Items Grid -->

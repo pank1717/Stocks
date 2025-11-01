@@ -35,6 +35,21 @@ header p {
     opacity: 0.9;
 }
 
+.keyboard-shortcuts-info {
+    margin-top: 15px;
+    font-size: 0.9rem;
+    opacity: 0.85;
+}
+
+.keyboard-shortcuts-info kbd {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
 /* Statistics Section */
 .stats-section {
     display: grid;
@@ -900,6 +915,225 @@ header p {
     }
 }
 
+/* View Toggle */
+.view-toggle {
+    display: flex;
+    gap: 5px;
+    background: white;
+    padding: 4px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-view {
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: background-color 0.2s;
+}
+
+.btn-view:hover {
+    background-color: #f0f0f0;
+}
+
+.btn-view.active {
+    background-color: #667eea;
+    color: white;
+}
+
+/* List View */
+.items-list .item-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    grid-template-rows: auto;
+    align-items: center;
+    gap: 20px;
+    padding: 15px 20px;
+    margin-bottom: 10px;
+}
+
+.items-list .item-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 0;
+}
+
+.items-list .item-photo {
+    font-size: 2rem;
+    width: 50px;
+    height: 50px;
+}
+
+.items-list .item-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 0;
+}
+
+.items-list .item-detail-row {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 5px;
+}
+
+.items-list .item-stock {
+    margin: 0;
+}
+
+.items-list .quick-actions {
+    position: static;
+    margin: 0;
+}
+
+.items-list .item-actions {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+}
+
+.items-list .low-stock-badge,
+.items-list .inactive-badge {
+    position: static;
+    display: inline-block;
+    margin-left: 10px;
+}
+
+/* Dark Mode */
+body.dark-mode {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #e0e0e0;
+}
+
+body.dark-mode .stat-card {
+    background: #2a2a3e;
+    color: #e0e0e0;
+}
+
+body.dark-mode .stat-value {
+    color: #e0e0e0;
+}
+
+body.dark-mode .stat-label {
+    color: #b0b0b0;
+}
+
+body.dark-mode .stat-card-active {
+    background: linear-gradient(135deg, #3a3a5e 0%, #4a4a6e 100%);
+    border-color: #667eea;
+}
+
+body.dark-mode .stat-card-warning {
+    background: linear-gradient(135deg, #4a3f1e 0%, #5a4f2e 100%);
+}
+
+body.dark-mode .item-card {
+    background: #2a2a3e;
+    color: #e0e0e0;
+}
+
+body.dark-mode .item-name {
+    color: #e0e0e0;
+}
+
+body.dark-mode .item-model {
+    color: #b0b0b0;
+}
+
+body.dark-mode .item-detail-label {
+    color: #999;
+}
+
+body.dark-mode .modal-content {
+    background: #2a2a3e;
+    color: #e0e0e0;
+}
+
+body.dark-mode .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+body.dark-mode input,
+body.dark-mode textarea,
+body.dark-mode select {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    border-color: #444;
+}
+
+body.dark-mode input:focus,
+body.dark-mode textarea:focus,
+body.dark-mode select:focus {
+    border-color: #667eea;
+    background: #1f1f33;
+}
+
+body.dark-mode .btn-secondary {
+    background: #3a3a5e;
+    color: #e0e0e0;
+}
+
+body.dark-mode .btn-secondary:hover {
+    background: #4a4a6e;
+}
+
+body.dark-mode .history-item,
+body.dark-mode .alert-item {
+    background: #1a1a2e;
+    border-left-color: #667eea;
+}
+
+body.dark-mode .history-details,
+body.dark-mode .alert-details {
+    color: #b0b0b0;
+}
+
+body.dark-mode .category-stat-card {
+    background: #2a2a3e;
+}
+
+body.dark-mode .category-stat-name {
+    color: #e0e0e0;
+}
+
+body.dark-mode .category-stat-details {
+    color: #b0b0b0;
+}
+
+body.dark-mode .loan-person-group {
+    background: #2a2a3e;
+}
+
+body.dark-mode .loan-item {
+    background: #1a1a2e;
+    border-left-color: #667eea;
+}
+
+body.dark-mode .loan-item-name {
+    color: #e0e0e0;
+}
+
+body.dark-mode .loan-item-details {
+    color: #b0b0b0;
+}
+
+body.dark-mode .empty-state {
+    color: #b0b0b0;
+}
+
+body.dark-mode .view-toggle {
+    background: #2a2a3e;
+}
+
+body.dark-mode .btn-view:hover {
+    background-color: #3a3a5e;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     header h1 {
@@ -920,6 +1154,11 @@ header p {
 
     .action-section {
         flex-direction: column;
+    }
+
+    .view-toggle {
+        width: 100%;
+        justify-content: center;
     }
 
     .form-row {
