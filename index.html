@@ -398,7 +398,13 @@
                     <h2>Historique des Mouvements</h2>
                     <span class="close" onclick="closeHistoryModal()">&times;</span>
                 </div>
-                <div id="history-content"></div>
+                <div style="padding: 20px;">
+                    <div id="history-chart-container" style="margin-bottom: 30px; background: white; padding: 20px; border-radius: 8px;">
+                        <h3 style="margin-bottom: 15px; color: #333;">📈 Évolution du stock</h3>
+                        <canvas id="history-chart" style="max-height: 300px;"></canvas>
+                    </div>
+                    <div id="history-content"></div>
+                </div>
             </div>
         </div>
 
@@ -442,6 +448,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script src="script.js"></script>
 </body>

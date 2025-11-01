@@ -269,10 +269,18 @@ function closeAdjustStockModal() {
     document.getElementById('adjust-stock-modal').classList.remove('show');
 }
 
+let historyChart = null;
+
 function showHistoryModal(itemId) {
     const item = items.find(i => i.id === itemId);
     if (!item) return;
 
+    // Generate chart
+    if (item.history && item.history.length > 0) {
+        createHistoryChart(item);
+    }
+
+    // Generate history list
     let historyHtml = `<div class="history-list">`;
 
     if (!item.history || item.history.length === 0) {
@@ -307,6 +315,84 @@ function showHistoryModal(itemId) {
     historyHtml += `</div>`;
     document.getElementById('history-content').innerHTML = historyHtml;
     document.getElementById('history-modal').classList.add('show');
+}
+
+function createHistoryChart(item) {
+    // Destroy previous chart if exists
+    if (historyChart) {
+        historyChart.destroy();
+    }
+
+    // Sort history by date (oldest first for chart)
+    const sortedHistory = [...item.history].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Prepare data
+    const labels = sortedHistory.map(entry => {
+        const date = new Date(entry.date);
+        return date.toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    });
+
+    const stockData = sortedHistory.map(entry => entry.new_quantity);
+
+    // Create chart
+    const ctx = document.getElementById('history-chart').getContext('2d');
+    historyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Quantité en stock',
+                data: stockData,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 2,
+                tension: 0.3,
+                fill: true,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: '#667eea',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        afterLabel: function(context) {
+                            const entry = sortedHistory[context.dataIndex];
+                            const type = entry.type === 'add' ? 'Ajout' : 'Retrait';
+                            return `${type} de ${entry.quantity} unité(s)`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    title: {
+                        display: true,
+                        text: 'Quantité'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                }
+            }
+        }
+    });
 }
 
 function closeHistoryModal() {
