@@ -1115,6 +1115,63 @@ header p {
     border-left: 4px solid #17a2b8;
 }
 
+/* Suppliers List */
+.suppliers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.supplier-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.supplier-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.supplier-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.supplier-name {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.supplier-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.supplier-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 10px;
+    font-size: 0.95rem;
+    color: #666;
+}
+
+.supplier-details a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.supplier-details a:hover {
+    text-decoration: underline;
+}
+
 /* Label Print Grid */
 .label-items-grid {
     display: grid;

@@ -110,6 +110,7 @@
             <button class="btn btn-info" onclick="showLoansModal()">👤 Qui a quoi ?</button>
             <button class="btn btn-success" onclick="exportToCSV()">📊 Exporter CSV</button>
             <button class="btn btn-warning" onclick="showLabelPrintModal()">🏷️ Imprimer étiquettes</button>
+            <button class="btn btn-info" onclick="showSuppliersModal()">🏢 Fournisseurs</button>
             <button class="btn btn-secondary" onclick="toggleTheme()" id="theme-toggle">🌙 Mode sombre</button>
             <div class="search-container">
                 <input type="text" id="search-input" placeholder="🔍 Rechercher (nom, modèle, catégorie, n° série, emplacement...)" oninput="filterItems()">
@@ -225,7 +226,12 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="item-supplier">Fournisseur</label>
-                            <input type="text" id="item-supplier">
+                            <select id="item-supplier-select" onchange="handleSupplierChange('item')">
+                                <option value="">-- Sélectionner un fournisseur --</option>
+                                <!-- Suppliers will be dynamically added -->
+                                <option value="__other__">✏️ Autre (saisir manuellement)</option>
+                            </select>
+                            <input type="text" id="item-supplier" placeholder="Nom du fournisseur..." style="display: none; margin-top: 8px;">
                         </div>
                         <div class="form-group">
                             <label for="item-purchase-date">Date d'achat</label>
@@ -328,7 +334,12 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="edit-item-supplier">Fournisseur</label>
-                            <input type="text" id="edit-item-supplier">
+                            <select id="edit-item-supplier-select" onchange="handleSupplierChange('edit-item')">
+                                <option value="">-- Sélectionner un fournisseur --</option>
+                                <!-- Suppliers will be dynamically added -->
+                                <option value="__other__">✏️ Autre (saisir manuellement)</option>
+                            </select>
+                            <input type="text" id="edit-item-supplier" placeholder="Nom du fournisseur..." style="display: none; margin-top: 8px;">
                         </div>
                         <div class="form-group">
                             <label for="edit-item-purchase-date">Date d'achat</label>
@@ -486,6 +497,79 @@
                     <!-- Items for label selection will be inserted here -->
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Suppliers Modal -->
+    <div id="suppliers-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>🏢 Gestion des Fournisseurs</h2>
+                <span class="close" onclick="closeSuppliersModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="showAddSupplierModal()">➕ Nouveau fournisseur</button>
+                </div>
+                <div id="suppliers-list" class="suppliers-list">
+                    <!-- Suppliers will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Supplier Modal -->
+    <div id="supplier-form-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="supplier-form-title">Ajouter un Fournisseur</h2>
+                <span class="close" onclick="closeSupplierFormModal()">&times;</span>
+            </div>
+            <form id="supplier-form" onsubmit="saveSupplier(event)">
+                <input type="hidden" id="supplier-id">
+
+                <div class="form-group">
+                    <label for="supplier-name">Nom du fournisseur *</label>
+                    <input type="text" id="supplier-name" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="supplier-contact">Personne de contact</label>
+                        <input type="text" id="supplier-contact">
+                    </div>
+                    <div class="form-group">
+                        <label for="supplier-email">Email</label>
+                        <input type="email" id="supplier-email">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="supplier-phone">Téléphone</label>
+                        <input type="tel" id="supplier-phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="supplier-website">Site web</label>
+                        <input type="url" id="supplier-website">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="supplier-address">Adresse</label>
+                    <textarea id="supplier-address" rows="2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="supplier-notes">Notes</label>
+                    <textarea id="supplier-notes" rows="3"></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeSupplierFormModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
         </div>
     </div>
 

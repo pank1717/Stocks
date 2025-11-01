@@ -50,6 +50,9 @@ const predefinedLocations = [
     'Stock sécurisé'
 ];
 
+// Suppliers Management
+let suppliers = JSON.parse(localStorage.getItem('suppliers') || '[]');
+
 // Location Management
 function handleLocationChange(prefix) {
     const selectElement = document.getElementById(`${prefix}-location-select`);
@@ -66,12 +69,172 @@ function handleLocationChange(prefix) {
     }
 }
 
+// Supplier Management
+function handleSupplierChange(prefix) {
+    const selectElement = document.getElementById(`${prefix}-supplier-select`);
+    const inputElement = document.getElementById(`${prefix}-supplier`);
+
+    if (selectElement.value === '__other__') {
+        inputElement.style.display = 'block';
+        inputElement.required = false;
+        inputElement.focus();
+    } else {
+        inputElement.style.display = 'none';
+        inputElement.required = false;
+        inputElement.value = selectElement.value;
+    }
+}
+
+function updateSupplierDropdowns() {
+    const selects = document.querySelectorAll('#item-supplier-select, #edit-item-supplier-select');
+
+    selects.forEach(select => {
+        // Save current value
+        const currentValue = select.value;
+
+        // Clear options except first and last
+        while (select.options.length > 2) {
+            select.remove(1);
+        }
+
+        // Add supplier options
+        suppliers.forEach(supplier => {
+            const option = document.createElement('option');
+            option.value = supplier.name;
+            option.textContent = supplier.name;
+            select.insertBefore(option, select.lastChild);
+        });
+
+        // Restore value if it exists
+        if (currentValue) {
+            select.value = currentValue;
+        }
+    });
+}
+
+function showSuppliersModal() {
+    renderSuppliers();
+    document.getElementById('suppliers-modal').classList.add('show');
+}
+
+function closeSuppliersModal() {
+    document.getElementById('suppliers-modal').classList.remove('show');
+}
+
+function renderSuppliers() {
+    const container = document.getElementById('suppliers-list');
+
+    if (suppliers.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">Aucun fournisseur enregistré</p>';
+        return;
+    }
+
+    container.innerHTML = suppliers.map(supplier => `
+        <div class="supplier-card">
+            <div class="supplier-header">
+                <div class="supplier-name">🏢 ${supplier.name}</div>
+                <div class="supplier-actions">
+                    <button class="btn btn-small btn-warning" onclick="editSupplier('${supplier.id}')">✏️ Modifier</button>
+                    <button class="btn btn-small btn-danger" onclick="deleteSupplier('${supplier.id}')">🗑️ Supprimer</button>
+                </div>
+            </div>
+            <div class="supplier-details">
+                ${supplier.contact ? `<div><strong>Contact:</strong> ${supplier.contact}</div>` : ''}
+                ${supplier.email ? `<div><strong>Email:</strong> <a href="mailto:${supplier.email}">${supplier.email}</a></div>` : ''}
+                ${supplier.phone ? `<div><strong>Téléphone:</strong> <a href="tel:${supplier.phone}">${supplier.phone}</a></div>` : ''}
+                ${supplier.website ? `<div><strong>Site web:</strong> <a href="${supplier.website}" target="_blank">${supplier.website}</a></div>` : ''}
+                ${supplier.address ? `<div><strong>Adresse:</strong> ${supplier.address}</div>` : ''}
+                ${supplier.notes ? `<div><strong>Notes:</strong> ${supplier.notes}</div>` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function showAddSupplierModal() {
+    document.getElementById('supplier-form-title').textContent = 'Ajouter un Fournisseur';
+    document.getElementById('supplier-form').reset();
+    document.getElementById('supplier-id').value = '';
+    document.getElementById('supplier-form-modal').classList.add('show');
+}
+
+function closeSupplierFormModal() {
+    document.getElementById('supplier-form-modal').classList.remove('show');
+}
+
+function editSupplier(supplierId) {
+    const supplier = suppliers.find(s => s.id === supplierId);
+    if (!supplier) return;
+
+    document.getElementById('supplier-form-title').textContent = 'Modifier le Fournisseur';
+    document.getElementById('supplier-id').value = supplier.id;
+    document.getElementById('supplier-name').value = supplier.name;
+    document.getElementById('supplier-contact').value = supplier.contact || '';
+    document.getElementById('supplier-email').value = supplier.email || '';
+    document.getElementById('supplier-phone').value = supplier.phone || '';
+    document.getElementById('supplier-website').value = supplier.website || '';
+    document.getElementById('supplier-address').value = supplier.address || '';
+    document.getElementById('supplier-notes').value = supplier.notes || '';
+
+    document.getElementById('supplier-form-modal').classList.add('show');
+}
+
+function saveSupplier(event) {
+    event.preventDefault();
+
+    const supplierId = document.getElementById('supplier-id').value;
+    const supplierData = {
+        name: document.getElementById('supplier-name').value,
+        contact: document.getElementById('supplier-contact').value,
+        email: document.getElementById('supplier-email').value,
+        phone: document.getElementById('supplier-phone').value,
+        website: document.getElementById('supplier-website').value,
+        address: document.getElementById('supplier-address').value,
+        notes: document.getElementById('supplier-notes').value
+    };
+
+    if (supplierId) {
+        // Update existing supplier
+        const index = suppliers.findIndex(s => s.id === supplierId);
+        if (index !== -1) {
+            suppliers[index] = { ...suppliers[index], ...supplierData };
+            showToast('Succès', 'Fournisseur modifié avec succès', 'success');
+        }
+    } else {
+        // Add new supplier
+        const newSupplier = {
+            id: Date.now().toString(),
+            ...supplierData
+        };
+        suppliers.push(newSupplier);
+        showToast('Succès', 'Fournisseur ajouté avec succès', 'success');
+    }
+
+    localStorage.setItem('suppliers', JSON.stringify(suppliers));
+    updateSupplierDropdowns();
+    closeSupplierFormModal();
+    renderSuppliers();
+}
+
+function deleteSupplier(supplierId) {
+    const supplier = suppliers.find(s => s.id === supplierId);
+    if (!supplier) return;
+
+    if (confirm(`Êtes-vous sûr de vouloir supprimer le fournisseur "${supplier.name}" ?`)) {
+        suppliers = suppliers.filter(s => s.id !== supplierId);
+        localStorage.setItem('suppliers', JSON.stringify(suppliers));
+        updateSupplierDropdowns();
+        renderSuppliers();
+        showToast('Succès', 'Fournisseur supprimé avec succès', 'success');
+    }
+}
+
 // Initialize app on load
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     initializeTheme();
     requestNotificationPermission();
     checkLowStockNotifications();
+    updateSupplierDropdowns();
 });
 
 // API Functions
@@ -213,7 +376,26 @@ function showEditItemModal(itemId) {
         locationInput.value = '';
     }
 
-    document.getElementById('edit-item-supplier').value = item.supplier || '';
+    // Handle supplier with predefined list
+    const supplierSelect = document.getElementById('edit-item-supplier-select');
+    const supplierInput = document.getElementById('edit-item-supplier');
+    const currentSupplier = item.supplier || '';
+    const supplierNames = suppliers.map(s => s.name);
+
+    if (supplierNames.includes(currentSupplier)) {
+        supplierSelect.value = currentSupplier;
+        supplierInput.style.display = 'none';
+        supplierInput.value = currentSupplier;
+    } else if (currentSupplier) {
+        supplierSelect.value = '__other__';
+        supplierInput.style.display = 'block';
+        supplierInput.value = currentSupplier;
+    } else {
+        supplierSelect.value = '';
+        supplierInput.style.display = 'none';
+        supplierInput.value = '';
+    }
+
     document.getElementById('edit-item-purchase-date').value = item.purchase_date || '';
     document.getElementById('edit-item-price').value = item.price || '';
     document.getElementById('edit-item-photo').value = item.photo || '';
