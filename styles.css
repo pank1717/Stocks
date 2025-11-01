@@ -537,6 +537,15 @@ header p {
     color: #1976d2;
 }
 
+.history-return-date {
+    background: #fff3e0;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: #f57c00;
+}
+
 .history-note {
     background: white;
     padding: 8px;
@@ -638,6 +647,82 @@ header p {
     color: #666;
 }
 
+/* Category Statistics */
+.category-stats-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.category-stats-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #667eea;
+}
+
+.category-stats-header h3 {
+    color: #333;
+    font-size: 1.3rem;
+    margin: 0;
+}
+
+.category-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.category-stat-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-left: 4px solid #667eea;
+}
+
+.category-stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.category-stat-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.category-stat-content {
+    flex: 1;
+}
+
+.category-stat-name {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.category-stat-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.category-stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.category-stat-row strong {
+    color: #333;
+}
+
 /* Low Stock Badge */
 .low-stock-badge {
     position: absolute;
@@ -651,6 +736,19 @@ header p {
     font-weight: bold;
     box-shadow: 0 2px 8px rgba(255, 152, 0, 0.4);
     animation: pulse 2s ease-in-out infinite;
+}
+
+.inactive-badge {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(117, 117, 117, 0.4);
 }
 
 .item-low-stock {

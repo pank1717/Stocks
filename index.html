@@ -71,6 +71,16 @@
             </div>
         </section>
 
+        <!-- Category Statistics -->
+        <section class="category-stats-section" id="category-stats-section">
+            <div class="category-stats-header">
+                <h3>📊 Statistiques par Catégorie</h3>
+            </div>
+            <div class="category-stats-grid" id="category-stats-content">
+                <!-- Stats will be dynamically inserted here -->
+            </div>
+        </section>
+
         <!-- Action Buttons -->
         <section class="action-section">
             <button class="btn btn-primary" onclick="showAddItemModal()">➕ Ajouter un Article</button>
@@ -312,6 +322,11 @@
                     <div class="form-group" id="adjust-person-group" style="display: none;">
                         <label for="adjust-person">Personne (à qui l'article est donné) *</label>
                         <input type="text" id="adjust-person" placeholder="Ex: Jean Dupont, Service Comptabilité">
+                    </div>
+
+                    <div class="form-group" id="adjust-return-date-group" style="display: none;">
+                        <label for="adjust-return-date">Date de retour prévue</label>
+                        <input type="date" id="adjust-return-date" min="">
                     </div>
 
                     <div class="form-group">

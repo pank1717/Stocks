@@ -243,6 +243,7 @@ function showHistoryModal(itemId) {
                             Stock: ${entry.previous_quantity} → ${entry.new_quantity}
                         </div>
                         ${entry.person ? `<div class="history-person">👤 Donné à: <strong>${entry.person}</strong></div>` : ''}
+                        ${entry.expected_return_date ? `<div class="history-return-date">📅 Retour prévu: <strong>${formatDate(entry.expected_return_date)}</strong></div>` : ''}
                         ${entry.note ? `<div class="history-note">${entry.note}</div>` : ''}
                         <div class="history-date">${formatDate(entry.date)}</div>
                     </div>
@@ -263,17 +264,26 @@ function closeHistoryModal() {
 function setAdjustmentType(type) {
     currentAdjustmentType = type;
 
-    // Show/hide person field based on adjustment type
+    // Show/hide person and return date fields based on adjustment type
     const personGroup = document.getElementById('adjust-person-group');
     const personInput = document.getElementById('adjust-person');
+    const returnDateGroup = document.getElementById('adjust-return-date-group');
+    const returnDateInput = document.getElementById('adjust-return-date');
 
     if (type === 'remove') {
         personGroup.style.display = 'block';
         personInput.required = true;
+        returnDateGroup.style.display = 'block';
+
+        // Set min date to today
+        const today = new Date().toISOString().split('T')[0];
+        returnDateInput.min = today;
     } else {
         personGroup.style.display = 'none';
         personInput.required = false;
         personInput.value = '';
+        returnDateGroup.style.display = 'none';
+        returnDateInput.value = '';
     }
 }
 
@@ -358,12 +368,14 @@ async function adjustStock(event) {
     const quantity = parseInt(document.getElementById('adjust-quantity').value) || 0;
     const note = document.getElementById('adjust-note').value;
     const person = document.getElementById('adjust-person').value;
+    const returnDate = document.getElementById('adjust-return-date').value;
 
     const adjustmentData = {
         type: currentAdjustmentType,
         quantity: quantity,
         note: note,
-        person: person || null
+        person: person || null,
+        expectedReturnDate: returnDate || null
     };
 
     try {
@@ -443,9 +455,20 @@ function renderItems() {
 
         const photo = item.photo || categoryIcons[item.category] || '📦';
 
+        // Calculate days since last movement
+        let daysSinceLastMovement = null;
+        let isInactive = false;
+        if (item.history && item.history.length > 0) {
+            const lastMovement = new Date(item.history[0].date);
+            const today = new Date();
+            daysSinceLastMovement = Math.floor((today - lastMovement) / (1000 * 60 * 60 * 24));
+            isInactive = daysSinceLastMovement > 90; // Inactive if no movement for 90+ days
+        }
+
         return `
             <div class="item-card ${isLowStock ? 'item-low-stock' : ''}">
                 ${isLowStock ? '<div class="low-stock-badge">⚠️ Stock faible</div>' : ''}
+                ${isInactive ? `<div class="inactive-badge">💤 Inactif depuis ${daysSinceLastMovement} jours</div>` : ''}
                 <div class="item-header">
                     <div class="item-photo">${photo}</div>
                     <div class="item-title-section">
@@ -553,6 +576,66 @@ function updateStatistics() {
             card.classList.remove('stat-card-active');
         }
     });
+
+    // Update category statistics
+    updateCategoryStatistics();
+}
+
+function updateCategoryStatistics() {
+    const categoryStats = {};
+
+    // Initialize all categories
+    Object.keys(categoryLabels).forEach(cat => {
+        categoryStats[cat] = {
+            count: 0,
+            totalUnits: 0,
+            totalValue: 0
+        };
+    });
+
+    // Calculate stats per category
+    items.forEach(item => {
+        const cat = item.category;
+        if (categoryStats[cat]) {
+            categoryStats[cat].count++;
+            categoryStats[cat].totalUnits += item.quantity;
+            categoryStats[cat].totalValue += (item.quantity * (item.price || 0));
+        }
+    });
+
+    // Render category stats
+    const container = document.getElementById('category-stats-content');
+    const sortedCategories = Object.entries(categoryStats)
+        .sort(([,a], [,b]) => b.totalValue - a.totalValue)
+        .filter(([, stats]) => stats.count > 0);
+
+    if (sortedCategories.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999;">Aucune donnée disponible</p>';
+        return;
+    }
+
+    container.innerHTML = sortedCategories.map(([cat, stats]) => `
+        <div class="category-stat-card">
+            <div class="category-stat-icon">${categoryIcons[cat]}</div>
+            <div class="category-stat-content">
+                <div class="category-stat-name">${categoryLabels[cat]}</div>
+                <div class="category-stat-details">
+                    <div class="category-stat-row">
+                        <span>Articles:</span>
+                        <strong>${stats.count}</strong>
+                    </div>
+                    <div class="category-stat-row">
+                        <span>Unités:</span>
+                        <strong>${stats.totalUnits}</strong>
+                    </div>
+                    <div class="category-stat-row">
+                        <span>Valeur:</span>
+                        <strong>${formatPrice(stats.totalValue)}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
 }
 
 // Status Filter Functions
