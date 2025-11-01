@@ -291,12 +291,17 @@
                 <form id="adjust-stock-form" onsubmit="adjustStock(event)">
                     <input type="hidden" id="adjust-item-id">
 
-                    <div class="form-group">
+                    <div class="form-group" id="adjust-type-group">
                         <label>Type d'ajustement</label>
                         <div class="adjustment-buttons">
                             <button type="button" class="btn btn-success" onclick="setAdjustmentType('add')">➕ Ajouter</button>
                             <button type="button" class="btn btn-danger" onclick="setAdjustmentType('remove')">➖ Retirer</button>
                         </div>
+                    </div>
+
+                    <div class="form-group" id="quick-type-info" style="display: none;">
+                        <label>Type d'ajustement</label>
+                        <div class="quick-type-display"></div>
                     </div>
 
                     <div class="form-group">

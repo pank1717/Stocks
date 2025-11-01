@@ -186,10 +186,28 @@ function showAdjustStockModal(itemId, type = 'add', quickQuantity = null) {
     `;
     document.getElementById('adjust-item-info').innerHTML = infoHtml;
 
+    const adjustTypeGroup = document.getElementById('adjust-type-group');
+    const quickTypeInfo = document.getElementById('quick-type-info');
+
     // Set adjustment type and quantity if quick action
-    setAdjustmentType(type);
-    if (quickQuantity) {
+    if (quickQuantity !== null) {
+        // Mode action rapide - masquer les boutons de type et afficher le type fixe
+        adjustTypeGroup.style.display = 'none';
+        quickTypeInfo.style.display = 'block';
+        const typeLabel = type === 'add' ? '➕ Ajout rapide' : '➖ Retrait rapide';
+        const typeColor = type === 'add' ? '#28a745' : '#dc3545';
+        quickTypeInfo.querySelector('.quick-type-display').innerHTML = `
+            <div style="padding: 12px; background: ${type === 'add' ? '#d4edda' : '#f8d7da'};
+                 color: ${typeColor}; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.1rem;">
+                ${typeLabel}
+            </div>`;
+        setAdjustmentType(type);
         document.getElementById('adjust-quantity').value = quickQuantity;
+    } else {
+        // Mode normal - afficher les boutons de type
+        adjustTypeGroup.style.display = 'block';
+        quickTypeInfo.style.display = 'none';
+        setAdjustmentType(type);
     }
 
     document.getElementById('adjust-stock-modal').classList.add('show');
