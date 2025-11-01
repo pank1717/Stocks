@@ -38,6 +38,7 @@ function initializeDatabase() {
             price REAL DEFAULT 0,
             photo TEXT,
             notes TEXT,
+            alert_threshold INTEGER DEFAULT 5,
             created_at TEXT,
             updated_at TEXT
         )
@@ -127,7 +128,8 @@ app.post('/api/items', (req, res) => {
         purchaseDate,
         price,
         photo,
-        notes
+        notes,
+        alertThreshold
     } = req.body;
 
     const createdAt = new Date().toISOString();
@@ -135,8 +137,8 @@ app.post('/api/items', (req, res) => {
     db.run(
         `INSERT INTO items (
             id, name, model, quantity, category, serial, location,
-            supplier, purchase_date, price, photo, notes, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            supplier, purchase_date, price, photo, notes, alert_threshold, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
             id,
             name,
@@ -150,6 +152,7 @@ app.post('/api/items', (req, res) => {
             price || 0,
             photo || null,
             notes || null,
+            alertThreshold || 5,
             createdAt
         ],
         function (err) {
@@ -195,7 +198,8 @@ app.put('/api/items/:id', (req, res) => {
         purchaseDate,
         price,
         photo,
-        notes
+        notes,
+        alertThreshold
     } = req.body;
 
     const updatedAt = new Date().toISOString();
@@ -212,6 +216,7 @@ app.put('/api/items/:id', (req, res) => {
             price = ?,
             photo = ?,
             notes = ?,
+            alert_threshold = ?,
             updated_at = ?
         WHERE id = ?`,
         [
@@ -225,6 +230,7 @@ app.put('/api/items/:id', (req, res) => {
             price || 0,
             photo || null,
             notes || null,
+            alertThreshold || 5,
             updatedAt,
             itemId
         ],
@@ -369,6 +375,7 @@ app.get('/api/statistics', (req, res) => {
             SUM(quantity) as total_units,
             SUM(CASE WHEN quantity > 0 THEN 1 ELSE 0 END) as in_stock,
             SUM(CASE WHEN quantity = 0 THEN 1 ELSE 0 END) as out_of_stock,
+            SUM(CASE WHEN quantity > 0 AND quantity <= alert_threshold THEN 1 ELSE 0 END) as low_stock,
             SUM(quantity * price) as total_value
         FROM items`,
         [],
@@ -378,6 +385,21 @@ app.get('/api/statistics', (req, res) => {
                 return;
             }
             res.json(row);
+        }
+    );
+});
+
+// Get items with low stock (alerts)
+app.get('/api/alerts', (req, res) => {
+    db.all(
+        'SELECT * FROM items WHERE quantity > 0 AND quantity <= alert_threshold ORDER BY quantity ASC',
+        [],
+        (err, rows) => {
+            if (err) {
+                res.status(500).json({ error: err.message });
+                return;
+            }
+            res.json(rows);
         }
     );
 });

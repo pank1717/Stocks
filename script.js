@@ -1,6 +1,7 @@
 // Data Storage
 let items = [];
 let currentAdjustmentType = 'add';
+let currentStatusFilter = 'all';
 
 // API Base URL
 const API_URL = window.location.origin;
@@ -163,6 +164,7 @@ function showEditItemModal(itemId) {
     document.getElementById('edit-item-price').value = item.price || '';
     document.getElementById('edit-item-photo').value = item.photo || '';
     document.getElementById('edit-item-notes').value = item.notes || '';
+    document.getElementById('edit-item-alert-threshold').value = item.alert_threshold || 5;
 
     document.getElementById('edit-item-modal').classList.add('show');
 }
@@ -254,7 +256,8 @@ async function addItem(event) {
         purchaseDate: document.getElementById('item-purchase-date').value,
         price: parseFloat(document.getElementById('item-price').value) || 0,
         photo: document.getElementById('item-photo').value,
-        notes: document.getElementById('item-notes').value
+        notes: document.getElementById('item-notes').value,
+        alertThreshold: parseInt(document.getElementById('item-alert-threshold').value) || 5
     };
 
     try {
@@ -282,7 +285,8 @@ async function updateItem(event) {
         purchaseDate: document.getElementById('edit-item-purchase-date').value,
         price: parseFloat(document.getElementById('edit-item-price').value) || 0,
         photo: document.getElementById('edit-item-photo').value,
-        notes: document.getElementById('edit-item-notes').value
+        notes: document.getElementById('edit-item-notes').value,
+        alertThreshold: parseInt(document.getElementById('edit-item-alert-threshold').value) || 5
     };
 
     try {
@@ -361,7 +365,19 @@ function renderItems() {
 
         const matchesCategory = !categoryFilter || item.category === categoryFilter;
 
-        return matchesSearch && matchesCategory;
+        // Status filter
+        const alertThreshold = item.alert_threshold || 5;
+        let matchesStatus = true;
+
+        if (currentStatusFilter === 'in-stock') {
+            matchesStatus = item.quantity > 0;
+        } else if (currentStatusFilter === 'out-stock') {
+            matchesStatus = item.quantity === 0;
+        } else if (currentStatusFilter === 'low-stock') {
+            matchesStatus = item.quantity > 0 && item.quantity <= alertThreshold;
+        }
+
+        return matchesSearch && matchesCategory && matchesStatus;
     });
 
     if (filteredItems.length === 0) {
@@ -376,8 +392,11 @@ function renderItems() {
     }
 
     container.innerHTML = filteredItems.map(item => {
+        const alertThreshold = item.alert_threshold || 5;
+        const isLowStock = item.quantity > 0 && item.quantity <= alertThreshold;
+
         const stockClass = item.quantity === 0 ? 'stock-out' :
-                          item.quantity <= 5 ? 'stock-low' : 'stock-available';
+                          isLowStock ? 'stock-low' : 'stock-available';
 
         const stockLabel = item.quantity === 0 ? 'Épuisé' :
                           item.quantity === 1 ? '1 unité' :
@@ -386,7 +405,8 @@ function renderItems() {
         const photo = item.photo || categoryIcons[item.category] || '📦';
 
         return `
-            <div class="item-card">
+            <div class="item-card ${isLowStock ? 'item-low-stock' : ''}">
+                ${isLowStock ? '<div class="low-stock-badge">⚠️ Stock faible</div>' : ''}
                 <div class="item-header">
                     <div class="item-photo">${photo}</div>
                     <div class="item-title-section">
@@ -463,13 +483,87 @@ function updateStatistics() {
     const totalUnits = items.reduce((sum, item) => sum + item.quantity, 0);
     const inStock = items.filter(item => item.quantity > 0).length;
     const outOfStock = items.filter(item => item.quantity === 0).length;
+    const lowStock = items.filter(item => {
+        const alertThreshold = item.alert_threshold || 5;
+        return item.quantity > 0 && item.quantity <= alertThreshold;
+    }).length;
     const totalValue = items.reduce((sum, item) => sum + (item.quantity * (item.price || 0)), 0);
 
     document.getElementById('stat-items').textContent = totalItems;
     document.getElementById('stat-units').textContent = totalUnits;
     document.getElementById('stat-in-stock').textContent = inStock;
     document.getElementById('stat-out-stock').textContent = outOfStock;
+    document.getElementById('stat-low-stock').textContent = lowStock;
     document.getElementById('stat-value').textContent = formatPrice(totalValue);
+
+    // Update stat card active states
+    document.querySelectorAll('.stat-card[data-filter]').forEach(card => {
+        const filter = card.getAttribute('data-filter');
+        if (filter === currentStatusFilter) {
+            card.classList.add('stat-card-active');
+        } else {
+            card.classList.remove('stat-card-active');
+        }
+    });
+}
+
+// Status Filter Functions
+function filterByStatus(status) {
+    currentStatusFilter = status;
+
+    // Reset search and category filters
+    document.getElementById('search-input').value = '';
+    document.getElementById('category-filter').value = '';
+
+    renderItems();
+    updateStatistics();
+
+    // Show alerts section if low-stock filter is selected
+    if (status === 'low-stock') {
+        showAlerts();
+    } else {
+        closeAlerts();
+    }
+}
+
+function showAlerts() {
+    const alertsSection = document.getElementById('alerts-section');
+    const alertsContent = document.getElementById('alerts-content');
+
+    const lowStockItems = items.filter(item => {
+        const alertThreshold = item.alert_threshold || 5;
+        return item.quantity > 0 && item.quantity <= alertThreshold;
+    });
+
+    if (lowStockItems.length === 0) {
+        alertsContent.innerHTML = '<p style="text-align: center; color: #666;">Aucune alerte de stock faible</p>';
+    } else {
+        alertsContent.innerHTML = lowStockItems.map(item => {
+            const photo = item.photo || categoryIcons[item.category] || '📦';
+            const alertThreshold = item.alert_threshold || 5;
+
+            return `
+                <div class="alert-item">
+                    <div class="alert-icon">${photo}</div>
+                    <div class="alert-content">
+                        <div class="alert-name">${item.name}</div>
+                        <div class="alert-details">
+                            Stock actuel: <strong>${item.quantity}</strong> / Seuil: <strong>${alertThreshold}</strong>
+                        </div>
+                    </div>
+                    <button class="btn btn-success btn-small" onclick="showAdjustStockModal('${item.id}')">
+                        Réapprovisionner
+                    </button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    alertsSection.style.display = 'block';
+}
+
+function closeAlerts() {
+    document.getElementById('alerts-section').style.display = 'none';
 }
 
 // Utility Functions

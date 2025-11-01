@@ -16,11 +16,32 @@
 
         <!-- Statistics Dashboard -->
         <section class="stats-section">
-            <div class="stat-card">
+            <div class="stat-card" data-filter="all" onclick="filterByStatus('all')">
                 <div class="stat-icon">📊</div>
                 <div class="stat-content">
                     <div class="stat-value" id="stat-items">0</div>
                     <div class="stat-label">Articles différents</div>
+                </div>
+            </div>
+            <div class="stat-card" data-filter="in-stock" onclick="filterByStatus('in-stock')">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-in-stock">0</div>
+                    <div class="stat-label">En stock</div>
+                </div>
+            </div>
+            <div class="stat-card" data-filter="out-stock" onclick="filterByStatus('out-stock')">
+                <div class="stat-icon">❌</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-out-stock">0</div>
+                    <div class="stat-label">Épuisés</div>
+                </div>
+            </div>
+            <div class="stat-card stat-card-warning" data-filter="low-stock" onclick="filterByStatus('low-stock')">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-low-stock">0</div>
+                    <div class="stat-label">Stock faible</div>
                 </div>
             </div>
             <div class="stat-card">
@@ -31,25 +52,22 @@
                 </div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">✅</div>
-                <div class="stat-content">
-                    <div class="stat-value" id="stat-in-stock">0</div>
-                    <div class="stat-label">En stock</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">❌</div>
-                <div class="stat-content">
-                    <div class="stat-value" id="stat-out-stock">0</div>
-                    <div class="stat-label">Épuisés</div>
-                </div>
-            </div>
-            <div class="stat-card">
                 <div class="stat-icon">💰</div>
                 <div class="stat-content">
                     <div class="stat-value" id="stat-value">0 CHF</div>
                     <div class="stat-label">Valeur totale</div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Alerts Section -->
+        <section class="alerts-section" id="alerts-section" style="display: none;">
+            <div class="alerts-header">
+                <h3>⚠️ Alertes de Stock Faible</h3>
+                <button class="btn btn-secondary btn-small" onclick="closeAlerts()">Masquer</button>
+            </div>
+            <div class="alerts-content" id="alerts-content">
+                <!-- Alerts will be dynamically inserted here -->
             </div>
         </section>
 
@@ -103,6 +121,13 @@
                             <label for="item-quantity">Quantité initiale *</label>
                             <input type="number" id="item-quantity" value="0" min="0" required>
                         </div>
+                        <div class="form-group">
+                            <label for="item-alert-threshold">Seuil d'alerte *</label>
+                            <input type="number" id="item-alert-threshold" value="5" min="0" required title="Vous serez alerté quand le stock atteint ou descend en-dessous de ce seuil">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-group">
                             <label for="item-category">Catégorie *</label>
                             <select id="item-category" required>
@@ -202,6 +227,10 @@
                                 <option value="stockage">💾 Stockage</option>
                                 <option value="mobile">📱 Mobile</option>
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-item-alert-threshold">Seuil d'alerte *</label>
+                            <input type="number" id="edit-item-alert-threshold" min="0" required title="Vous serez alerté quand le stock atteint ou descend en-dessous de ce seuil">
                         </div>
                     </div>
 
