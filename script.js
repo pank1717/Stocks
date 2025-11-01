@@ -1202,6 +1202,210 @@ function downloadQRCode() {
     link.click();
 }
 
+// Label Printing Functions
+let selectedLabelItems = new Set();
+
+function showLabelPrintModal() {
+    selectedLabelItems.clear();
+    renderLabelItems();
+    document.getElementById('label-print-modal').classList.add('show');
+}
+
+function closeLabelPrintModal() {
+    document.getElementById('label-print-modal').classList.remove('show');
+}
+
+function renderLabelItems() {
+    const container = document.getElementById('label-items-grid');
+
+    if (items.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #666;">Aucun article disponible</p>';
+        return;
+    }
+
+    container.innerHTML = items.map(item => {
+        const photo = item.photo || categoryIcons[item.category] || '📦';
+        const isSelected = selectedLabelItems.has(item.id);
+
+        return `
+            <div class="label-item-card ${isSelected ? 'selected' : ''}" onclick="toggleLabelSelection('${item.id}')">
+                <div class="label-item-photo">${photo}</div>
+                <div class="label-item-name">${item.name}</div>
+                <div class="label-item-details">
+                    ${item.model || ''}<br>
+                    Stock: ${item.quantity}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function toggleLabelSelection(itemId) {
+    if (selectedLabelItems.has(itemId)) {
+        selectedLabelItems.delete(itemId);
+    } else {
+        selectedLabelItems.add(itemId);
+    }
+    renderLabelItems();
+}
+
+function selectAllLabels() {
+    items.forEach(item => selectedLabelItems.add(item.id));
+    renderLabelItems();
+}
+
+function deselectAllLabels() {
+    selectedLabelItems.clear();
+    renderLabelItems();
+}
+
+async function printSelectedLabels() {
+    if (selectedLabelItems.size === 0) {
+        alert('Veuillez sélectionner au moins un article');
+        return;
+    }
+
+    const selectedItems = items.filter(item => selectedLabelItems.has(item.id));
+
+    // Generate QR codes for all selected items
+    const labelData = await Promise.all(selectedItems.map(async (item) => {
+        const photo = item.photo || categoryIcons[item.category] || '📦';
+        const qrData = JSON.stringify({
+            id: item.id,
+            name: item.name,
+            model: item.model || '',
+            serial: item.serial || '',
+            category: item.category,
+            location: item.location || '',
+            url: window.location.href
+        });
+
+        // Generate QR code as data URL
+        const canvas = document.createElement('canvas');
+        await QRCode.toCanvas(canvas, qrData, {
+            width: 150,
+            margin: 1
+        });
+
+        return {
+            item,
+            photo,
+            qrCodeData: canvas.toDataURL()
+        };
+    }));
+
+    // Create print window
+    const printWindow = window.open('', '', 'height=800,width=1000');
+
+    const labelsHtml = labelData.map(({ item, photo, qrCodeData }) => `
+        <div class="label">
+            <div class="label-header">
+                <div class="label-emoji">${photo}</div>
+                <div class="label-title">
+                    <h3>${item.name}</h3>
+                    ${item.model ? `<p>${item.model}</p>` : ''}
+                </div>
+            </div>
+            <div class="label-qr">
+                <img src="${qrCodeData}" alt="QR Code" />
+            </div>
+            <div class="label-info">
+                ${item.serial ? `<div><strong>N° Série:</strong> ${item.serial}</div>` : ''}
+                <div><strong>Catégorie:</strong> ${categoryLabels[item.category]}</div>
+                ${item.location ? `<div><strong>Emplacement:</strong> ${item.location}</div>` : ''}
+            </div>
+        </div>
+    `).join('');
+
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Étiquettes d'inventaire</title>
+            <style>
+                @page {
+                    margin: 10mm;
+                }
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 0;
+                    padding: 20px;
+                }
+                .label {
+                    width: 80mm;
+                    height: 50mm;
+                    border: 2px solid #333;
+                    border-radius: 8px;
+                    padding: 5mm;
+                    margin-bottom: 5mm;
+                    page-break-inside: avoid;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    box-sizing: border-box;
+                }
+                .label-header {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    border-bottom: 1px solid #ddd;
+                    padding-bottom: 5px;
+                }
+                .label-emoji {
+                    font-size: 2rem;
+                }
+                .label-title h3 {
+                    margin: 0;
+                    font-size: 1.1rem;
+                }
+                .label-title p {
+                    margin: 2px 0 0 0;
+                    font-size: 0.85rem;
+                    color: #666;
+                }
+                .label-qr {
+                    text-align: center;
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .label-qr img {
+                    max-width: 100%;
+                    height: auto;
+                }
+                .label-info {
+                    font-size: 0.75rem;
+                    color: #333;
+                    border-top: 1px solid #ddd;
+                    padding-top: 5px;
+                }
+                .label-info div {
+                    margin: 2px 0;
+                }
+                @media print {
+                    body {
+                        padding: 0;
+                    }
+                    .label {
+                        margin-bottom: 0;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            ${labelsHtml}
+        </body>
+        </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.focus();
+
+    setTimeout(() => {
+        printWindow.print();
+    }, 500);
+}
+
 // Export Functions
 function exportToCSV() {
     if (items.length === 0) {

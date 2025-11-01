@@ -89,6 +89,7 @@
             <button class="btn btn-primary" onclick="showAddItemModal()">➕ Ajouter un Article</button>
             <button class="btn btn-info" onclick="showLoansModal()">👤 Qui a quoi ?</button>
             <button class="btn btn-success" onclick="exportToCSV()">📊 Exporter CSV</button>
+            <button class="btn btn-warning" onclick="showLabelPrintModal()">🏷️ Imprimer étiquettes</button>
             <button class="btn btn-secondary" onclick="toggleTheme()" id="theme-toggle">🌙 Mode sombre</button>
             <div class="search-container">
                 <input type="text" id="search-input" placeholder="🔍 Rechercher (nom, modèle, catégorie, n° série, emplacement...)" oninput="filterItems()">
@@ -443,6 +444,26 @@
                 <div style="margin-top: 20px;">
                     <button class="btn btn-primary" onclick="printQRCode()">🖨️ Imprimer</button>
                     <button class="btn btn-success" onclick="downloadQRCode()">💾 Télécharger</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Label Print Modal -->
+    <div id="label-print-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>🏷️ Imprimer des étiquettes</h2>
+                <span class="close" onclick="closeLabelPrintModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="selectAllLabels()">✓ Tout sélectionner</button>
+                    <button class="btn btn-secondary" onclick="deselectAllLabels()">✗ Tout désélectionner</button>
+                    <button class="btn btn-success" onclick="printSelectedLabels()" style="margin-left: 20px;">🖨️ Imprimer la sélection</button>
+                </div>
+                <div id="label-items-grid" class="label-items-grid">
+                    <!-- Items for label selection will be inserted here -->
                 </div>
             </div>
         </div>
