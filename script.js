@@ -53,6 +53,112 @@ const predefinedLocations = [
 // Suppliers Management
 let suppliers = JSON.parse(localStorage.getItem('suppliers') || '[]');
 
+// User Management & Permissions
+let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+let users = JSON.parse(localStorage.getItem('users') || '[]');
+
+// Initialize default admin user if no users exist
+if (users.length === 0) {
+    users.push({
+        id: '1',
+        username: 'admin',
+        password: 'admin',  // In production, this should be hashed
+        role: 'admin',
+        email: 'admin@example.com',
+        created: new Date().toISOString()
+    });
+    localStorage.setItem('users', JSON.stringify(users));
+}
+
+// Role permissions configuration
+const PERMISSIONS = {
+    admin: {
+        canAddItems: true,
+        canEditItems: true,
+        canDeleteItems: true,
+        canAdjustStock: true,
+        canExport: true,
+        canPrintLabels: true,
+        canManageSuppliers: true,
+        canManageUsers: true,
+        canViewHistory: true,
+        canViewLoans: true
+    },
+    manager: {
+        canAddItems: true,
+        canEditItems: true,
+        canDeleteItems: false,
+        canAdjustStock: true,
+        canExport: true,
+        canPrintLabels: true,
+        canManageSuppliers: true,
+        canManageUsers: false,
+        canViewHistory: true,
+        canViewLoans: true
+    },
+    viewer: {
+        canAddItems: false,
+        canEditItems: false,
+        canDeleteItems: false,
+        canAdjustStock: false,
+        canExport: true,
+        canPrintLabels: false,
+        canManageSuppliers: false,
+        canManageUsers: false,
+        canViewHistory: true,
+        canViewLoans: true
+    }
+};
+
+function hasPermission(permission) {
+    if (!currentUser) return false;
+    return PERMISSIONS[currentUser.role]?.[permission] || false;
+}
+
+// Initialize currentUser as admin if not set (for demo purposes)
+if (!currentUser) {
+    currentUser = users[0]; // Default to admin
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+}
+
+function updateUserInterface() {
+    // Update user info display
+    const userInfo = document.getElementById('user-info');
+    if (userInfo && currentUser) {
+        const roleLabels = {
+            'admin': 'Administrateur',
+            'manager': 'Gestionnaire',
+            'viewer': 'Lecteur'
+        };
+        const roleColors = {
+            'admin': '#dc3545',
+            'manager': '#ffc107',
+            'viewer': '#17a2b8'
+        };
+        userInfo.innerHTML = `
+            <span style="color: ${roleColors[currentUser.role]}; font-weight: bold;">
+                👤 ${currentUser.username} (${roleLabels[currentUser.role]})
+            </span>
+        `;
+    }
+
+    // Show/hide buttons based on permissions
+    const addItemBtn = document.querySelector('button[onclick="showAddItemModal()"]');
+    if (addItemBtn) addItemBtn.style.display = hasPermission('canAddItems') ? 'inline-block' : 'none';
+
+    const exportBtn = document.querySelector('button[onclick="exportToCSV()"]');
+    if (exportBtn) exportBtn.style.display = hasPermission('canExport') ? 'inline-block' : 'none';
+
+    const labelBtn = document.querySelector('button[onclick="showLabelPrintModal()"]');
+    if (labelBtn) labelBtn.style.display = hasPermission('canPrintLabels') ? 'inline-block' : 'none';
+
+    const suppliersBtn = document.querySelector('button[onclick="showSuppliersModal()"]');
+    if (suppliersBtn) suppliersBtn.style.display = hasPermission('canManageSuppliers') ? 'inline-block' : 'none';
+
+    const userManagementBtn = document.getElementById('user-management-btn');
+    if (userManagementBtn) userManagementBtn.style.display = hasPermission('canManageUsers') ? 'inline-block' : 'none';
+}
+
 // Location Management
 function handleLocationChange(prefix) {
     const selectElement = document.getElementById(`${prefix}-location-select`);
@@ -228,6 +334,120 @@ function deleteSupplier(supplierId) {
     }
 }
 
+// User Management Functions
+function showUserManagementModal() {
+    if (!hasPermission('canManageUsers')) {
+        showToast('Accès refusé', 'Seuls les administrateurs peuvent gérer les utilisateurs', 'error');
+        return;
+    }
+    renderUsersTable();
+    document.getElementById('user-management-modal').classList.add('show');
+}
+
+function closeUserManagementModal() {
+    document.getElementById('user-management-modal').classList.remove('show');
+}
+
+function renderUsersTable() {
+    const container = document.getElementById('users-table');
+
+    if (users.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Aucun utilisateur</p>';
+        return;
+    }
+
+    const roleLabels = {
+        'admin': '👑 Administrateur',
+        'manager': '👨‍💼 Gestionnaire',
+        'viewer': '👁️ Lecteur'
+    };
+
+    const roleColors = {
+        'admin': '#dc3545',
+        'manager': '#ffc107',
+        'viewer': '#17a2b8'
+    };
+
+    container.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f8f9fa;">
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Utilisateur</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Email</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Rôle</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Créé le</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Actuel</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${users.map(user => `
+                    <tr style="border-bottom: 1px solid #dee2e6;">
+                        <td style="padding: 12px;"><strong>${user.username}</strong></td>
+                        <td style="padding: 12px;">${user.email}</td>
+                        <td style="padding: 12px;">
+                            <span style="color: ${roleColors[user.role]}; font-weight: bold;">
+                                ${roleLabels[user.role]}
+                            </span>
+                        </td>
+                        <td style="padding: 12px; font-size: 0.85rem; color: #666;">
+                            ${new Date(user.created).toLocaleDateString('fr-CH')}
+                        </td>
+                        <td style="padding: 12px;">
+                            ${currentUser.id === user.id ? '✓ Connecté' : ''}
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function switchRole(role) {
+    // Find or create a demo user with the specified role
+    let demoUser = users.find(u => u.role === role && u.username.includes('demo'));
+
+    if (!demoUser) {
+        const roleNames = {
+            'admin': 'demo_admin',
+            'manager': 'demo_manager',
+            'viewer': 'demo_viewer'
+        };
+
+        const roleEmails = {
+            'admin': 'admin@demo.com',
+            'manager': 'manager@demo.com',
+            'viewer': 'viewer@demo.com'
+        };
+
+        demoUser = {
+            id: Date.now().toString(),
+            username: roleNames[role],
+            password: 'demo',
+            role: role,
+            email: roleEmails[role],
+            created: new Date().toISOString()
+        };
+
+        users.push(demoUser);
+        localStorage.setItem('users', JSON.stringify(users));
+    }
+
+    currentUser = demoUser;
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+    updateUserInterface();
+    renderItems(); // Re-render to apply permission changes to item cards
+    renderUsersTable();
+
+    const roleLabels = {
+        'admin': 'Administrateur',
+        'manager': 'Gestionnaire',
+        'viewer': 'Lecteur'
+    };
+
+    showToast('Rôle changé', `Vous êtes maintenant connecté en tant que ${roleLabels[role]}`, 'success');
+}
+
 // Initialize app on load
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
@@ -235,6 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
     requestNotificationPermission();
     checkLowStockNotifications();
     updateSupplierDropdowns();
+    updateUserInterface();
 });
 
 // API Functions
@@ -846,31 +1067,41 @@ function renderItems() {
                     ${stockLabel}
                 </div>
 
-                <div class="quick-actions">
-                    <button class="btn btn-success btn-quick" onclick="showAdjustStockModal('${item.id}', 'add', 1)" title="Ajouter 1 unité">
-                        ➕
-                    </button>
-                    <button class="btn btn-danger btn-quick" onclick="showAdjustStockModal('${item.id}', 'remove', 1)" title="Retirer 1 unité">
-                        ➖
-                    </button>
-                </div>
+                ${hasPermission('canAdjustStock') ? `
+                    <div class="quick-actions">
+                        <button class="btn btn-success btn-quick" onclick="showAdjustStockModal('${item.id}', 'add', 1)" title="Ajouter 1 unité">
+                            ➕
+                        </button>
+                        <button class="btn btn-danger btn-quick" onclick="showAdjustStockModal('${item.id}', 'remove', 1)" title="Retirer 1 unité">
+                            ➖
+                        </button>
+                    </div>
+                ` : ''}
 
                 <div class="item-actions">
-                    <button class="btn btn-success btn-small" onclick="showAdjustStockModal('${item.id}')">
-                        📊 Ajuster
-                    </button>
-                    <button class="btn btn-info btn-small" onclick="showHistoryModal('${item.id}')">
-                        📜 Historique
-                    </button>
+                    ${hasPermission('canAdjustStock') ? `
+                        <button class="btn btn-success btn-small" onclick="showAdjustStockModal('${item.id}')">
+                            📊 Ajuster
+                        </button>
+                    ` : ''}
+                    ${hasPermission('canViewHistory') ? `
+                        <button class="btn btn-info btn-small" onclick="showHistoryModal('${item.id}')">
+                            📜 Historique
+                        </button>
+                    ` : ''}
                     <button class="btn btn-secondary btn-small" onclick="showQRCodeModal('${item.id}')">
                         🔲 QR Code
                     </button>
-                    <button class="btn btn-warning btn-small" onclick="showEditItemModal('${item.id}')">
-                        ✏️ Modifier
-                    </button>
-                    <button class="btn btn-danger btn-small" onclick="deleteItem('${item.id}')">
-                        🗑️ Supprimer
-                    </button>
+                    ${hasPermission('canEditItems') ? `
+                        <button class="btn btn-warning btn-small" onclick="showEditItemModal('${item.id}')">
+                            ✏️ Modifier
+                        </button>
+                    ` : ''}
+                    ${hasPermission('canDeleteItems') ? `
+                        <button class="btn btn-danger btn-small" onclick="deleteItem('${item.id}')">
+                            🗑️ Supprimer
+                        </button>
+                    ` : ''}
                 </div>
             </div>
         `;

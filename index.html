@@ -10,6 +10,10 @@
     <div class="container">
         <!-- Header -->
         <header>
+            <div style="position: absolute; top: 10px; left: 20px; display: flex; align-items: center; gap: 15px;">
+                <div id="user-info" style="color: white; font-size: 0.9rem;"></div>
+                <button class="btn btn-small btn-secondary" onclick="showUserManagementModal()" id="user-management-btn" style="font-size: 0.85rem;">⚙️ Utilisateurs</button>
+            </div>
             <div style="position: relative;">
                 <button class="notification-bell" onclick="toggleNotificationCenter()" id="notification-bell">
                     🔔
@@ -570,6 +574,66 @@
                     <button type="submit" class="btn btn-primary">Enregistrer</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- User Management Modal -->
+    <div id="user-management-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>⚙️ Gestion des Utilisateurs & Rôles</h2>
+                <span class="close" onclick="closeUserManagementModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div class="permissions-info" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="margin-top: 0;">Rôles et Permissions</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <strong style="color: #dc3545;">👑 Administrateur</strong>
+                            <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9rem;">
+                                <li>Accès complet</li>
+                                <li>Gestion utilisateurs</li>
+                                <li>Suppression articles</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong style="color: #ffc107;">👨‍💼 Gestionnaire</strong>
+                            <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9rem;">
+                                <li>Ajout/modification</li>
+                                <li>Ajustement stock</li>
+                                <li>Gestion fournisseurs</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong style="color: #17a2b8;">👁️ Lecteur</strong>
+                            <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9rem;">
+                                <li>Lecture seule</li>
+                                <li>Export données</li>
+                                <li>Consultation historique</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label><strong>Changer de rôle (démonstration):</strong></label>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="btn btn-danger" onclick="switchRole('admin')">👑 Admin</button>
+                        <button class="btn btn-warning" onclick="switchRole('manager')">👨‍💼 Manager</button>
+                        <button class="btn btn-info" onclick="switchRole('viewer')">👁️ Viewer</button>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 0.85rem; color: #666;">
+                        <em>Note: Dans un environnement de production, l'authentification serait gérée par Azure AD ou un système similaire.</em>
+                    </p>
+                </div>
+
+                <div id="users-list" style="margin-top: 20px;">
+                    <h3>Utilisateurs enregistrés</h3>
+                    <div id="users-table" class="users-table">
+                        <!-- Users will be rendered here -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
