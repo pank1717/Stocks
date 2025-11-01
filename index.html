@@ -41,6 +41,11 @@
         <!-- Toast Container -->
         <div id="toast-container" class="toast-container"></div>
 
+        <!-- Emergency Admin Access (hidden) -->
+        <div style="position: fixed; bottom: 10px; right: 10px; opacity: 0.3; font-size: 0.7rem;">
+            <button onclick="emergencyAdminAccess()" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: rgba(255,255,255,0.5); padding: 3px 8px; border-radius: 4px; cursor: pointer;" title="Accès admin d'urgence (Ctrl+Shift+A)">🔓</button>
+        </div>
+
         <!-- Statistics Dashboard -->
         <section class="stats-section">
             <div class="stat-card" data-filter="all" onclick="filterByStatus('all')">

@@ -2277,4 +2277,25 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         showLoansModal();
     }
+
+    // Ctrl+Shift+A: Emergency admin access
+    if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        e.preventDefault();
+        emergencyAdminAccess();
+    }
 });
+
+// Emergency Admin Access
+function emergencyAdminAccess() {
+    if (confirm('Accès admin d\'urgence. Continuer ?')) {
+        // Switch to admin user
+        const adminUser = users.find(u => u.role === 'admin') || users[0];
+        currentUser = adminUser;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        updateUserInterface();
+        renderItems();
+
+        showToast('Accès restauré', 'Vous êtes maintenant connecté en tant qu\'administrateur', 'success');
+    }
+}
