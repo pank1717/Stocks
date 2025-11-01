@@ -173,7 +173,7 @@ function closeEditItemModal() {
     document.getElementById('edit-item-modal').classList.remove('show');
 }
 
-function showAdjustStockModal(itemId) {
+function showAdjustStockModal(itemId, type = 'add', quickQuantity = null) {
     const item = items.find(i => i.id === itemId);
     if (!item) return;
 
@@ -186,7 +186,12 @@ function showAdjustStockModal(itemId) {
     `;
     document.getElementById('adjust-item-info').innerHTML = infoHtml;
 
-    currentAdjustmentType = 'add';
+    // Set adjustment type and quantity if quick action
+    setAdjustmentType(type);
+    if (quickQuantity) {
+        document.getElementById('adjust-quantity').value = quickQuantity;
+    }
+
     document.getElementById('adjust-stock-modal').classList.add('show');
 }
 
@@ -219,6 +224,7 @@ function showHistoryModal(itemId) {
                         <div class="history-details">
                             Stock: ${entry.previous_quantity} → ${entry.new_quantity}
                         </div>
+                        ${entry.person ? `<div class="history-person">👤 Donné à: <strong>${entry.person}</strong></div>` : ''}
                         ${entry.note ? `<div class="history-note">${entry.note}</div>` : ''}
                         <div class="history-date">${formatDate(entry.date)}</div>
                     </div>
@@ -238,6 +244,19 @@ function closeHistoryModal() {
 
 function setAdjustmentType(type) {
     currentAdjustmentType = type;
+
+    // Show/hide person field based on adjustment type
+    const personGroup = document.getElementById('adjust-person-group');
+    const personInput = document.getElementById('adjust-person');
+
+    if (type === 'remove') {
+        personGroup.style.display = 'block';
+        personInput.required = true;
+    } else {
+        personGroup.style.display = 'none';
+        personInput.required = false;
+        personInput.value = '';
+    }
 }
 
 // Item Management Functions
@@ -320,11 +339,13 @@ async function adjustStock(event) {
     const itemId = document.getElementById('adjust-item-id').value;
     const quantity = parseInt(document.getElementById('adjust-quantity').value) || 0;
     const note = document.getElementById('adjust-note').value;
+    const person = document.getElementById('adjust-person').value;
 
     const adjustmentData = {
         type: currentAdjustmentType,
         quantity: quantity,
-        note: note
+        note: note,
+        person: person || null
     };
 
     try {
@@ -453,6 +474,15 @@ function renderItems() {
 
                 <div class="item-stock ${stockClass}">
                     ${stockLabel}
+                </div>
+
+                <div class="quick-actions">
+                    <button class="btn btn-success btn-quick" onclick="showAdjustStockModal('${item.id}', 'add', 1)" title="Ajouter 1 unité">
+                        ➕
+                    </button>
+                    <button class="btn btn-danger btn-quick" onclick="showAdjustStockModal('${item.id}', 'remove', 1)" title="Retirer 1 unité">
+                        ➖
+                    </button>
                 </div>
 
                 <div class="item-actions">

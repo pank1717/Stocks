@@ -398,7 +398,7 @@ app.delete('/api/items/:id', ensureAuthenticated, (req, res) => {
 // Adjust stock
 app.post('/api/items/:id/adjust', ensureAuthenticated, (req, res) => {
     const itemId = req.params.id;
-    const { type, quantity, note } = req.body;
+    const { type, quantity, note, person } = req.body;
 
     if (!type || !quantity) {
         res.status(400).json({ error: 'Type and quantity are required' });
@@ -450,9 +450,9 @@ app.post('/api/items/:id/adjust', ensureAuthenticated, (req, res) => {
                 db.run(
                     `INSERT INTO stock_history (
                         item_id, type, quantity, previous_quantity,
-                        new_quantity, note, date, user_email
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [itemId, type, quantity, previousQuantity, newQuantity, note || null, date, req.user.email],
+                        new_quantity, note, person, date, user_email
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [itemId, type, quantity, previousQuantity, newQuantity, note || null, person || null, date, req.user.email],
                     function (err) {
                         if (err) {
                             res.status(500).json({ error: err.message });

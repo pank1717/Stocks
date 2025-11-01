@@ -201,6 +201,18 @@ header p {
     font-size: 0.9rem;
 }
 
+.btn-quick {
+    padding: 12px 20px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* Items Section */
 .items-section {
     display: grid;
@@ -315,6 +327,15 @@ header p {
 .stock-out {
     background: #f8d7da;
     color: #721c24;
+}
+
+.quick-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
 }
 
 .item-actions {
@@ -505,6 +526,15 @@ header p {
     color: #666;
     font-size: 0.9rem;
     margin-top: 5px;
+}
+
+.history-person {
+    background: #e3f2fd;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: #1976d2;
 }
 
 .history-note {
