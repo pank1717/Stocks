@@ -163,7 +163,21 @@
                         </div>
                         <div class="form-group">
                             <label for="item-location">Emplacement physique</label>
-                            <input type="text" id="item-location">
+                            <select id="item-location-select" onchange="handleLocationChange('item')">
+                                <option value="">-- Sélectionner un emplacement --</option>
+                                <option value="Bureau IT - Armoire A">Bureau IT - Armoire A</option>
+                                <option value="Bureau IT - Armoire B">Bureau IT - Armoire B</option>
+                                <option value="Bureau IT - Armoire C">Bureau IT - Armoire C</option>
+                                <option value="Salle serveur">Salle serveur</option>
+                                <option value="Réception">Réception</option>
+                                <option value="Salle de réunion 1">Salle de réunion 1</option>
+                                <option value="Salle de réunion 2">Salle de réunion 2</option>
+                                <option value="Atelier technique">Atelier technique</option>
+                                <option value="Entrepôt">Entrepôt</option>
+                                <option value="Stock sécurisé">Stock sécurisé</option>
+                                <option value="__other__">✏️ Autre (préciser)</option>
+                            </select>
+                            <input type="text" id="item-location" placeholder="Préciser l'emplacement..." style="display: none; margin-top: 8px;">
                         </div>
                     </div>
 
@@ -252,7 +266,21 @@
                         </div>
                         <div class="form-group">
                             <label for="edit-item-location">Emplacement physique</label>
-                            <input type="text" id="edit-item-location">
+                            <select id="edit-item-location-select" onchange="handleLocationChange('edit-item')">
+                                <option value="">-- Sélectionner un emplacement --</option>
+                                <option value="Bureau IT - Armoire A">Bureau IT - Armoire A</option>
+                                <option value="Bureau IT - Armoire B">Bureau IT - Armoire B</option>
+                                <option value="Bureau IT - Armoire C">Bureau IT - Armoire C</option>
+                                <option value="Salle serveur">Salle serveur</option>
+                                <option value="Réception">Réception</option>
+                                <option value="Salle de réunion 1">Salle de réunion 1</option>
+                                <option value="Salle de réunion 2">Salle de réunion 2</option>
+                                <option value="Atelier technique">Atelier technique</option>
+                                <option value="Entrepôt">Entrepôt</option>
+                                <option value="Stock sécurisé">Stock sécurisé</option>
+                                <option value="__other__">✏️ Autre (préciser)</option>
+                            </select>
+                            <input type="text" id="edit-item-location" placeholder="Préciser l'emplacement..." style="display: none; margin-top: 8px;">
                         </div>
                     </div>
 

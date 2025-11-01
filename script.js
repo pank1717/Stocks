@@ -34,6 +34,36 @@ const categoryLabels = {
     'mobile': 'Mobile'
 };
 
+// Predefined Locations
+const predefinedLocations = [
+    'Bureau IT - Armoire A',
+    'Bureau IT - Armoire B',
+    'Bureau IT - Armoire C',
+    'Salle serveur',
+    'Réception',
+    'Salle de réunion 1',
+    'Salle de réunion 2',
+    'Atelier technique',
+    'Entrepôt',
+    'Stock sécurisé'
+];
+
+// Location Management
+function handleLocationChange(prefix) {
+    const selectElement = document.getElementById(`${prefix}-location-select`);
+    const inputElement = document.getElementById(`${prefix}-location`);
+
+    if (selectElement.value === '__other__') {
+        inputElement.style.display = 'block';
+        inputElement.required = true;
+        inputElement.focus();
+    } else {
+        inputElement.style.display = 'none';
+        inputElement.required = false;
+        inputElement.value = selectElement.value;
+    }
+}
+
 // Initialize app on load
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
@@ -158,7 +188,26 @@ function showEditItemModal(itemId) {
     document.getElementById('edit-item-model').value = item.model || '';
     document.getElementById('edit-item-category').value = item.category;
     document.getElementById('edit-item-serial').value = item.serial || '';
-    document.getElementById('edit-item-location').value = item.location || '';
+
+    // Handle location with predefined list
+    const locationSelect = document.getElementById('edit-item-location-select');
+    const locationInput = document.getElementById('edit-item-location');
+    const currentLocation = item.location || '';
+
+    if (predefinedLocations.includes(currentLocation)) {
+        locationSelect.value = currentLocation;
+        locationInput.style.display = 'none';
+        locationInput.value = currentLocation;
+    } else if (currentLocation) {
+        locationSelect.value = '__other__';
+        locationInput.style.display = 'block';
+        locationInput.value = currentLocation;
+    } else {
+        locationSelect.value = '';
+        locationInput.style.display = 'none';
+        locationInput.value = '';
+    }
+
     document.getElementById('edit-item-supplier').value = item.supplier || '';
     document.getElementById('edit-item-purchase-date').value = item.purchase_date || '';
     document.getElementById('edit-item-price').value = item.price || '';
