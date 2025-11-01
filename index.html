@@ -10,12 +10,32 @@
     <div class="container">
         <!-- Header -->
         <header>
+            <div style="position: relative;">
+                <button class="notification-bell" onclick="toggleNotificationCenter()" id="notification-bell">
+                    🔔
+                    <span class="notification-badge" id="notification-badge" style="display: none;">0</span>
+                </button>
+            </div>
             <h1>📦 Gestion de Stock IT</h1>
             <p>Gérez vos actifs informatiques en toute simplicité</p>
             <div class="keyboard-shortcuts-info">
                 ⌨️ Raccourcis: <kbd>Ctrl+N</kbd> Nouveau | <kbd>Ctrl+K</kbd> Rechercher | <kbd>Ctrl+L</kbd> Vue | <kbd>Ctrl+D</kbd> Thème | <kbd>Ctrl+W</kbd> Prêts
             </div>
         </header>
+
+        <!-- Notification Center -->
+        <div id="notification-center" class="notification-center" style="display: none;">
+            <div class="notification-center-header">
+                <h3>🔔 Centre de notifications</h3>
+                <button class="btn btn-small btn-secondary" onclick="clearAllNotifications()">Tout effacer</button>
+            </div>
+            <div id="notification-list" class="notification-list">
+                <!-- Notifications will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div id="toast-container" class="toast-container"></div>
 
         <!-- Statistics Dashboard -->
         <section class="stats-section">

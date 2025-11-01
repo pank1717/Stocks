@@ -70,6 +70,8 @@ function handleLocationChange(prefix) {
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     initializeTheme();
+    requestNotificationPermission();
+    checkLowStockNotifications();
 });
 
 // API Functions
@@ -907,12 +909,11 @@ function formatDate(dateString) {
 }
 
 function showSuccess(message) {
-    // Simple alert for now - could be replaced with a toast notification
-    console.log('Success:', message);
+    showToast('Succès', message, 'success');
 }
 
 function showError(message) {
-    alert(message);
+    showToast('Erreur', message, 'error');
 }
 
 // Loans Management Functions
@@ -1477,6 +1478,186 @@ function exportToCSV() {
     document.body.removeChild(link);
 
     showSuccess('Export CSV réussi!');
+}
+
+// Notification System
+let notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+
+function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+}
+
+function addNotification(title, message, type = 'info') {
+    const notification = {
+        id: Date.now(),
+        title,
+        message,
+        type,
+        time: new Date().toISOString(),
+        read: false
+    };
+
+    notifications.unshift(notification);
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+    updateNotificationBadge();
+
+    // Show browser notification if permitted
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, {
+            body: message,
+            icon: '📦'
+        });
+    }
+}
+
+function updateNotificationBadge() {
+    const unreadCount = notifications.filter(n => !n.read).length;
+    const badge = document.getElementById('notification-badge');
+
+    if (unreadCount > 0) {
+        badge.textContent = unreadCount;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function toggleNotificationCenter() {
+    const center = document.getElementById('notification-center');
+    const isVisible = center.style.display !== 'none';
+
+    if (isVisible) {
+        center.style.display = 'none';
+    } else {
+        center.style.display = 'block';
+        renderNotifications();
+    }
+}
+
+function renderNotifications() {
+    const container = document.getElementById('notification-list');
+
+    if (notifications.length === 0) {
+        container.innerHTML = '<p style="padding: 20px; text-align: center; color: #666;">Aucune notification</p>';
+        return;
+    }
+
+    container.innerHTML = notifications.map(notif => {
+        const time = new Date(notif.time);
+        const timeAgo = getTimeAgo(time);
+        const typeIcon = {
+            'success': '✅',
+            'warning': '⚠️',
+            'error': '❌',
+            'info': 'ℹ️'
+        }[notif.type] || 'ℹ️';
+
+        return `
+            <div class="notification-item ${notif.read ? '' : 'unread'}" onclick="markNotificationRead('${notif.id}')">
+                <div class="notification-item-title">${typeIcon} ${notif.title}</div>
+                <div class="notification-item-message">${notif.message}</div>
+                <div class="notification-item-time">${timeAgo}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+function markNotificationRead(notifId) {
+    const notif = notifications.find(n => n.id == notifId);
+    if (notif) {
+        notif.read = true;
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+        updateNotificationBadge();
+        renderNotifications();
+    }
+}
+
+function clearAllNotifications() {
+    if (confirm('Effacer toutes les notifications ?')) {
+        notifications = [];
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+        updateNotificationBadge();
+        renderNotifications();
+    }
+}
+
+function getTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    const intervals = {
+        'an': 31536000,
+        'mois': 2592000,
+        'jour': 86400,
+        'heure': 3600,
+        'minute': 60
+    };
+
+    for (const [name, count] of Object.entries(intervals)) {
+        const interval = Math.floor(seconds / count);
+        if (interval >= 1) {
+            return `Il y a ${interval} ${name}${interval > 1 && name !== 'mois' ? 's' : ''}`;
+        }
+    }
+    return 'À l\'instant';
+}
+
+// Toast Notifications
+function showToast(title, message, type = 'info', duration = 4000) {
+    const container = document.getElementById('toast-container');
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+
+    const icons = {
+        'success': '✅',
+        'warning': '⚠️',
+        'error': '❌',
+        'info': 'ℹ️'
+    };
+
+    toast.innerHTML = `
+        <div class="toast-icon">${icons[type]}</div>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+    `;
+
+    container.appendChild(toast);
+
+    // Auto-remove after duration
+    setTimeout(() => {
+        toast.classList.add('removing');
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+function checkLowStockNotifications() {
+    // Check for low stock items and send notifications
+    const lowStockItems = items.filter(item => {
+        const alertThreshold = item.alert_threshold || 5;
+        return item.quantity > 0 && item.quantity <= alertThreshold;
+    });
+
+    if (lowStockItems.length > 0) {
+        lowStockItems.forEach(item => {
+            // Check if we've already notified about this item recently
+            const recentNotif = notifications.find(n =>
+                n.message.includes(item.name) &&
+                new Date() - new Date(n.time) < 86400000 // 24 hours
+            );
+
+            if (!recentNotif) {
+                addNotification(
+                    'Stock faible',
+                    `${item.name}: ${item.quantity} unité(s) restante(s)`,
+                    'warning'
+                );
+            }
+        });
+    }
 }
 
 // View Management
