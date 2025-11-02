@@ -1901,30 +1901,37 @@ function renderItems() {
     const categoryFilter = document.getElementById('category-filter').value;
     const sortOption = document.getElementById('sort-select').value;
 
-    let filteredItems = items.filter(item => {
-        const matchesSearch = !searchTerm ||
-            item.name.toLowerCase().includes(searchTerm) ||
-            (item.model && item.model.toLowerCase().includes(searchTerm)) ||
-            (item.serial && item.serial.toLowerCase().includes(searchTerm)) ||
-            (item.location && item.location.toLowerCase().includes(searchTerm)) ||
-            categoryLabels[item.category].toLowerCase().includes(searchTerm);
+    let filteredItems;
 
-        const matchesCategory = !categoryFilter || item.category === categoryFilter;
+    // Use advanced search if active
+    if (advancedSearchActive) {
+        filteredItems = filterItemsByAdvancedCriteria(items, advancedSearchCriteria);
+    } else {
+        filteredItems = items.filter(item => {
+            const matchesSearch = !searchTerm ||
+                item.name.toLowerCase().includes(searchTerm) ||
+                (item.model && item.model.toLowerCase().includes(searchTerm)) ||
+                (item.serial && item.serial.toLowerCase().includes(searchTerm)) ||
+                (item.location && item.location.toLowerCase().includes(searchTerm)) ||
+                categoryLabels[item.category].toLowerCase().includes(searchTerm);
 
-        // Status filter
-        const alertThreshold = item.alert_threshold || 5;
-        let matchesStatus = true;
+            const matchesCategory = !categoryFilter || item.category === categoryFilter;
 
-        if (currentStatusFilter === 'in-stock') {
-            matchesStatus = item.quantity > 0;
-        } else if (currentStatusFilter === 'out-stock') {
-            matchesStatus = item.quantity === 0;
-        } else if (currentStatusFilter === 'low-stock') {
-            matchesStatus = item.quantity > 0 && item.quantity <= alertThreshold;
-        }
+            // Status filter
+            const alertThreshold = item.alert_threshold || 5;
+            let matchesStatus = true;
 
-        return matchesSearch && matchesCategory && matchesStatus;
-    });
+            if (currentStatusFilter === 'in-stock') {
+                matchesStatus = item.quantity > 0;
+            } else if (currentStatusFilter === 'out-stock') {
+                matchesStatus = item.quantity === 0;
+            } else if (currentStatusFilter === 'low-stock') {
+                matchesStatus = item.quantity > 0 && item.quantity <= alertThreshold;
+            }
+
+            return matchesSearch && matchesCategory && matchesStatus;
+        });
+    }
 
     // Apply sorting
     filteredItems = sortItems(filteredItems, sortOption);
@@ -2849,6 +2856,239 @@ function exportToCSV() {
     showSuccess('Export CSV réussi!');
 }
 
+// Print Inventory Report
+function printInventoryReport() {
+    const date = new Date().toLocaleDateString('fr-FR');
+    const time = new Date().toLocaleTimeString('fr-FR');
+
+    // Calculate statistics
+    const totalValue = items.reduce((sum, item) => sum + (item.quantity * (item.price || 0)), 0);
+    const inStock = items.filter(item => item.quantity > 0).length;
+    const lowStock = items.filter(item => item.quantity > 0 && item.quantity <= (item.alert_threshold || 5)).length;
+    const outOfStock = items.filter(item => item.quantity === 0).length;
+
+    // Group by category
+    const categoryGroups = {};
+    items.forEach(item => {
+        if (!categoryGroups[item.category]) {
+            categoryGroups[item.category] = [];
+        }
+        categoryGroups[item.category].push(item);
+    });
+
+    // Generate HTML for print
+    let reportHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Rapport d'Inventaire - ${date}</title>
+            <style>
+                @media print {
+                    @page { margin: 1cm; }
+                    body { margin: 0; }
+                    .no-print { display: none !important; }
+                }
+                body {
+                    font-family: Arial, sans-serif;
+                    font-size: 12pt;
+                    line-height: 1.4;
+                    color: #333;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    padding-bottom: 20px;
+                    border-bottom: 3px solid #667eea;
+                }
+                .header h1 {
+                    margin: 0;
+                    color: #667eea;
+                    font-size: 24pt;
+                }
+                .header p {
+                    margin: 5px 0;
+                    color: #666;
+                }
+                .summary {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 15px;
+                    margin-bottom: 30px;
+                }
+                .summary-card {
+                    background: #f8f9fa;
+                    padding: 15px;
+                    border-radius: 8px;
+                    border-left: 4px solid #667eea;
+                }
+                .summary-card .label {
+                    font-size: 10pt;
+                    color: #666;
+                    margin-bottom: 5px;
+                }
+                .summary-card .value {
+                    font-size: 18pt;
+                    font-weight: bold;
+                    color: #333;
+                }
+                .category-section {
+                    margin-bottom: 30px;
+                    page-break-inside: avoid;
+                }
+                .category-header {
+                    background: #667eea;
+                    color: white;
+                    padding: 10px 15px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                    font-size: 14pt;
+                    margin-bottom: 10px;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 20px;
+                }
+                table th {
+                    background: #f8f9fa;
+                    padding: 8px;
+                    text-align: left;
+                    border-bottom: 2px solid #ddd;
+                    font-weight: bold;
+                }
+                table td {
+                    padding: 8px;
+                    border-bottom: 1px solid #eee;
+                }
+                table tr:hover {
+                    background: #f8f9fa;
+                }
+                .stock-low {
+                    color: #ff9800;
+                    font-weight: bold;
+                }
+                .stock-out {
+                    color: #f44336;
+                    font-weight: bold;
+                }
+                .footer {
+                    margin-top: 40px;
+                    padding-top: 20px;
+                    border-top: 2px solid #ddd;
+                    text-align: center;
+                    color: #666;
+                    font-size: 10pt;
+                }
+                .no-print {
+                    position: fixed;
+                    top: 10px;
+                    right: 10px;
+                    z-index: 1000;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="no-print">
+                <button onclick="window.print()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14pt;">
+                    🖨️ Imprimer / Sauvegarder en PDF
+                </button>
+                <button onclick="window.close()" style="padding: 10px 20px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14pt; margin-left: 10px;">
+                    ✖️ Fermer
+                </button>
+            </div>
+
+            <div class="header">
+                <h1>📦 Rapport d'Inventaire IT</h1>
+                <p>Généré le ${date} à ${time}</p>
+                <p>Utilisateur: ${currentUser ? currentUser.username : 'N/A'}</p>
+            </div>
+
+            <div class="summary">
+                <div class="summary-card">
+                    <div class="label">Total Articles</div>
+                    <div class="value">${items.length}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">En Stock</div>
+                    <div class="value">${inStock}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">Stock Faible</div>
+                    <div class="value" style="color: #ff9800;">${lowStock}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">Épuisés</div>
+                    <div class="value" style="color: #f44336;">${outOfStock}</div>
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 30px;">
+                <strong>💰 Valeur Totale de l'Inventaire:</strong> <span style="font-size: 18pt; font-weight: bold; color: #667eea;">${totalValue.toFixed(2)} CHF</span>
+            </div>
+    `;
+
+    // Add items by category
+    Object.keys(categoryGroups).sort().forEach(category => {
+        const categoryItems = categoryGroups[category];
+        const categoryLabel = categoryLabels[category] || category;
+
+        reportHTML += `
+            <div class="category-section">
+                <div class="category-header">${categoryIcons[category] || ''} ${categoryLabel} (${categoryItems.length} articles)</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Modèle</th>
+                            <th>Quantité</th>
+                            <th>Emplacement</th>
+                            <th>Prix Unit.</th>
+                            <th>Valeur Tot.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        categoryItems.sort((a, b) => a.name.localeCompare(b.name)).forEach(item => {
+            const stockClass = item.quantity === 0 ? 'stock-out' :
+                              (item.quantity <= (item.alert_threshold || 5) ? 'stock-low' : '');
+            const totalValue = item.quantity * (item.price || 0);
+
+            reportHTML += `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>${item.model || '-'}</td>
+                    <td class="${stockClass}">${item.quantity}</td>
+                    <td>${item.location || '-'}</td>
+                    <td>${(item.price || 0).toFixed(2)} CHF</td>
+                    <td>${totalValue.toFixed(2)} CHF</td>
+                </tr>
+            `;
+        });
+
+        reportHTML += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    });
+
+    reportHTML += `
+            <div class="footer">
+                <p>Rapport généré par le système de Gestion de Stock IT</p>
+                <p>Ce document est confidentiel et destiné à un usage interne uniquement</p>
+            </div>
+        </body>
+        </html>
+    `;
+
+    // Open in new window for printing
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(reportHTML);
+    printWindow.document.close();
+}
+
 // CSV Import Functions
 function showImportCSVModal() {
     if (!hasPermission('canAddItems')) {
@@ -3194,6 +3434,692 @@ async function processCSVImport() {
     };
 
     reader.readAsText(file, 'UTF-8');
+}
+
+// Advanced Statistics Dashboard
+let statsCharts = {}; // Store chart instances
+
+function showStatsModal() {
+    // Destroy existing charts
+    Object.keys(statsCharts).forEach(key => {
+        if (statsCharts[key]) {
+            statsCharts[key].destroy();
+        }
+    });
+    statsCharts = {};
+
+    // Show modal
+    document.getElementById('stats-modal').classList.add('show');
+
+    // Calculate and display KPIs
+    calculateKPIs();
+
+    // Create charts with a small delay to ensure modal is fully rendered
+    setTimeout(() => {
+        createCategoryChart();
+        createStockStatusChart();
+        createValueChart();
+        createLocationChart();
+        createActivityChart();
+    }, 100);
+}
+
+function closeStatsModal() {
+    document.getElementById('stats-modal').classList.remove('show');
+}
+
+function calculateKPIs() {
+    // Total value
+    const totalValue = items.reduce((sum, item) => {
+        return sum + (item.quantity * (item.price || 0));
+    }, 0);
+    document.getElementById('kpi-total-value').textContent = totalValue.toFixed(2) + ' CHF';
+
+    // Average price
+    const itemsWithPrice = items.filter(item => item.price && item.price > 0);
+    const avgPrice = itemsWithPrice.length > 0
+        ? itemsWithPrice.reduce((sum, item) => sum + item.price, 0) / itemsWithPrice.length
+        : 0;
+    document.getElementById('kpi-avg-price').textContent = avgPrice.toFixed(2) + ' CHF';
+
+    // Rotation rate (items with stock movements)
+    const itemsWithMovements = items.filter(item => item.history && item.history.length > 0);
+    const rotationRate = items.length > 0 ? (itemsWithMovements.length / items.length * 100) : 0;
+    document.getElementById('kpi-rotation').textContent = rotationRate.toFixed(1) + '%';
+
+    // Active items (items with stock > 0)
+    const activeItems = items.filter(item => item.quantity > 0).length;
+    document.getElementById('kpi-active-items').textContent = activeItems;
+}
+
+function createCategoryChart() {
+    const ctx = document.getElementById('category-chart');
+    if (!ctx) return;
+
+    // Group items by category
+    const categoryData = {};
+    items.forEach(item => {
+        categoryData[item.category] = (categoryData[item.category] || 0) + 1;
+    });
+
+    const labels = Object.keys(categoryData).map(cat => categoryLabels[cat] || cat);
+    const data = Object.values(categoryData);
+    const colors = [
+        '#667eea', '#764ba2', '#f093fb', '#f5576c',
+        '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+        '#fa709a', '#fee140'
+    ];
+
+    statsCharts.category = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors,
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 10,
+                        font: { size: 11 }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createStockStatusChart() {
+    const ctx = document.getElementById('stock-status-chart');
+    if (!ctx) return;
+
+    const inStock = items.filter(item => item.quantity > item.alert_threshold).length;
+    const lowStock = items.filter(item => item.quantity > 0 && item.quantity <= item.alert_threshold).length;
+    const outOfStock = items.filter(item => item.quantity === 0).length;
+
+    statsCharts.stockStatus = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['En stock', 'Stock faible', 'Épuisé'],
+            datasets: [{
+                data: [inStock, lowStock, outOfStock],
+                backgroundColor: ['#43e97b', '#ffc107', '#f5576c'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 10,
+                        font: { size: 11 }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createValueChart() {
+    const ctx = document.getElementById('value-chart');
+    if (!ctx) return;
+
+    // Calculate value by category
+    const categoryValue = {};
+    items.forEach(item => {
+        const value = item.quantity * (item.price || 0);
+        categoryValue[item.category] = (categoryValue[item.category] || 0) + value;
+    });
+
+    const labels = Object.keys(categoryValue).map(cat => categoryLabels[cat] || cat);
+    const data = Object.values(categoryValue);
+    const colors = [
+        '#667eea', '#764ba2', '#f093fb', '#f5576c',
+        '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+        '#fa709a', '#fee140'
+    ];
+
+    statsCharts.value = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Valeur (CHF)',
+                data: data,
+                backgroundColor: colors,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(0) + ' CHF';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createLocationChart() {
+    const ctx = document.getElementById('location-chart');
+    if (!ctx) return;
+
+    // Count items by location
+    const locationData = {};
+    items.forEach(item => {
+        if (item.location) {
+            locationData[item.location] = (locationData[item.location] || 0) + item.quantity;
+        }
+    });
+
+    // Get top 5 locations
+    const sortedLocations = Object.entries(locationData)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+    const labels = sortedLocations.map(loc => loc[0]);
+    const data = sortedLocations.map(loc => loc[1]);
+
+    statsCharts.location = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Quantité',
+                data: data,
+                backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                borderColor: 'rgba(102, 126, 234, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createActivityChart() {
+    const ctx = document.getElementById('activity-chart');
+    if (!ctx) return;
+
+    // Get last 6 months of activity from audit logs
+    const now = new Date();
+    const monthsData = [];
+    const monthLabels = [];
+
+    for (let i = 5; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        monthLabels.push(date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }));
+
+        const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+        const monthLogs = auditLogs.filter(log => {
+            const logDate = new Date(log.timestamp);
+            return logDate >= date && logDate < nextMonth && log.targetType === 'item';
+        });
+
+        monthsData.push(monthLogs.length);
+    }
+
+    statsCharts.activity = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: monthLabels,
+            datasets: [{
+                label: 'Actions',
+                data: monthsData,
+                borderColor: 'rgba(102, 126, 234, 1)',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Advanced Search
+let advancedSearchActive = false;
+let advancedSearchCriteria = {};
+
+function showAdvancedSearchModal() {
+    document.getElementById('advanced-search-modal').classList.add('show');
+    updateAdvancedSearchCount();
+}
+
+function closeAdvancedSearchModal() {
+    document.getElementById('advanced-search-modal').classList.remove('show');
+}
+
+function resetAdvancedSearch() {
+    // Clear all form fields
+    document.getElementById('adv-name').value = '';
+    document.getElementById('adv-model').value = '';
+    document.getElementById('adv-category').value = '';
+    document.getElementById('adv-stock-status').value = '';
+    document.getElementById('adv-quantity-min').value = '';
+    document.getElementById('adv-quantity-max').value = '';
+    document.getElementById('adv-price-min').value = '';
+    document.getElementById('adv-price-max').value = '';
+    document.getElementById('adv-location').value = '';
+    document.getElementById('adv-supplier').value = '';
+    document.getElementById('adv-purchase-date-from').value = '';
+    document.getElementById('adv-purchase-date-to').value = '';
+    document.getElementById('adv-serial').value = '';
+    document.getElementById('adv-notes').value = '';
+
+    // Reset search
+    advancedSearchActive = false;
+    advancedSearchCriteria = {};
+
+    // Clear basic search
+    document.getElementById('search-input').value = '';
+    document.getElementById('category-filter').value = '';
+
+    // Refresh display
+    filterItems();
+    updateAdvancedSearchCount();
+
+    showSuccess('Filtres de recherche réinitialisés');
+}
+
+function updateAdvancedSearchCount() {
+    const criteria = getAdvancedSearchCriteria();
+    const results = filterItemsByAdvancedCriteria(items, criteria);
+    document.getElementById('adv-search-count').textContent = `${results.length} article(s) trouvé(s)`;
+}
+
+function getAdvancedSearchCriteria() {
+    return {
+        name: document.getElementById('adv-name').value.trim().toLowerCase(),
+        model: document.getElementById('adv-model').value.trim().toLowerCase(),
+        category: document.getElementById('adv-category').value,
+        stockStatus: document.getElementById('adv-stock-status').value,
+        quantityMin: document.getElementById('adv-quantity-min').value,
+        quantityMax: document.getElementById('adv-quantity-max').value,
+        priceMin: document.getElementById('adv-price-min').value,
+        priceMax: document.getElementById('adv-price-max').value,
+        location: document.getElementById('adv-location').value.trim().toLowerCase(),
+        supplier: document.getElementById('adv-supplier').value.trim().toLowerCase(),
+        purchaseDateFrom: document.getElementById('adv-purchase-date-from').value,
+        purchaseDateTo: document.getElementById('adv-purchase-date-to').value,
+        serial: document.getElementById('adv-serial').value.trim().toLowerCase(),
+        notes: document.getElementById('adv-notes').value.trim().toLowerCase()
+    };
+}
+
+function filterItemsByAdvancedCriteria(itemsToFilter, criteria) {
+    return itemsToFilter.filter(item => {
+        // Name filter
+        if (criteria.name && !item.name.toLowerCase().includes(criteria.name)) {
+            return false;
+        }
+
+        // Model filter
+        if (criteria.model && !(item.model || '').toLowerCase().includes(criteria.model)) {
+            return false;
+        }
+
+        // Category filter
+        if (criteria.category && item.category !== criteria.category) {
+            return false;
+        }
+
+        // Stock status filter
+        if (criteria.stockStatus) {
+            if (criteria.stockStatus === 'in-stock' && item.quantity <= item.alert_threshold) {
+                return false;
+            }
+            if (criteria.stockStatus === 'low-stock' && (item.quantity === 0 || item.quantity > item.alert_threshold)) {
+                return false;
+            }
+            if (criteria.stockStatus === 'out-stock' && item.quantity !== 0) {
+                return false;
+            }
+        }
+
+        // Quantity filters
+        if (criteria.quantityMin && item.quantity < parseInt(criteria.quantityMin)) {
+            return false;
+        }
+        if (criteria.quantityMax && item.quantity > parseInt(criteria.quantityMax)) {
+            return false;
+        }
+
+        // Price filters
+        if (criteria.priceMin && (item.price || 0) < parseFloat(criteria.priceMin)) {
+            return false;
+        }
+        if (criteria.priceMax && (item.price || 0) > parseFloat(criteria.priceMax)) {
+            return false;
+        }
+
+        // Location filter
+        if (criteria.location && !(item.location || '').toLowerCase().includes(criteria.location)) {
+            return false;
+        }
+
+        // Supplier filter
+        if (criteria.supplier && !(item.supplier || '').toLowerCase().includes(criteria.supplier)) {
+            return false;
+        }
+
+        // Purchase date filters
+        if (criteria.purchaseDateFrom && item.purchase_date && item.purchase_date < criteria.purchaseDateFrom) {
+            return false;
+        }
+        if (criteria.purchaseDateTo && item.purchase_date && item.purchase_date > criteria.purchaseDateTo) {
+            return false;
+        }
+
+        // Serial filter
+        if (criteria.serial && !(item.serial || '').toLowerCase().includes(criteria.serial)) {
+            return false;
+        }
+
+        // Notes filter
+        if (criteria.notes && !(item.notes || '').toLowerCase().includes(criteria.notes)) {
+            return false;
+        }
+
+        return true;
+    });
+}
+
+function applyAdvancedSearch(event) {
+    event.preventDefault();
+
+    advancedSearchCriteria = getAdvancedSearchCriteria();
+    advancedSearchActive = true;
+
+    // Clear basic search filters
+    document.getElementById('search-input').value = '';
+    document.getElementById('category-filter').value = '';
+
+    // Apply advanced search
+    filterItems();
+
+    // Close modal
+    closeAdvancedSearchModal();
+
+    showSuccess('Recherche avancée appliquée');
+}
+
+// Maintenance Management
+let maintenanceRecords = JSON.parse(localStorage.getItem('maintenanceRecords') || '[]');
+
+function showMaintenanceModal() {
+    document.getElementById('maintenance-modal').classList.add('show');
+    renderMaintenanceList();
+}
+
+function closeMaintenanceModal() {
+    document.getElementById('maintenance-modal').classList.remove('show');
+}
+
+function showAddMaintenanceModal() {
+    // Populate items dropdown
+    const select = document.getElementById('maint-item');
+    select.innerHTML = '<option value="">-- Sélectionner un article --</option>';
+    items.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = `${item.name} ${item.model ? '- ' + item.model : ''}`;
+        select.appendChild(option);
+    });
+
+    // Set default start date to today
+    document.getElementById('maint-start-date').valueAsDate = new Date();
+
+    document.getElementById('add-maintenance-modal').classList.add('show');
+}
+
+function closeAddMaintenanceModal() {
+    document.getElementById('add-maintenance-modal').classList.remove('show');
+    document.getElementById('add-maintenance-form').reset();
+}
+
+function addMaintenance(event) {
+    event.preventDefault();
+
+    const itemId = document.getElementById('maint-item').value;
+    const item = items.find(i => i.id === itemId);
+
+    const maintenance = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        itemId: itemId,
+        itemName: item ? item.name : '',
+        type: document.getElementById('maint-type').value,
+        startDate: document.getElementById('maint-start-date').value,
+        endDate: document.getElementById('maint-end-date').value || null,
+        cost: parseFloat(document.getElementById('maint-cost').value) || 0,
+        technician: document.getElementById('maint-technician').value,
+        description: document.getElementById('maint-description').value,
+        notes: document.getElementById('maint-notes').value,
+        status: 'in-progress',
+        completedDate: null,
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser ? currentUser.username : 'Unknown'
+    };
+
+    maintenanceRecords.push(maintenance);
+    localStorage.setItem('maintenanceRecords', JSON.stringify(maintenanceRecords));
+
+    // Add audit log
+    addAuditLog('create', 'maintenance', {
+        maintenanceId: maintenance.id,
+        itemName: maintenance.itemName,
+        type: maintenance.type
+    });
+
+    closeAddMaintenanceModal();
+    renderMaintenanceList();
+    showSuccess('Maintenance enregistrée');
+}
+
+function completeMaintenance(maintenanceId) {
+    const maintenance = maintenanceRecords.find(m => m.id === maintenanceId);
+    if (!maintenance) return;
+
+    if (confirm('Marquer cette maintenance comme terminée?')) {
+        maintenance.status = 'completed';
+        maintenance.completedDate = new Date().toISOString();
+        localStorage.setItem('maintenanceRecords', JSON.stringify(maintenanceRecords));
+
+        // Add audit log
+        addAuditLog('update', 'maintenance', {
+            maintenanceId: maintenance.id,
+            itemName: maintenance.itemName,
+            action: 'completed'
+        });
+
+        renderMaintenanceList();
+        showSuccess('Maintenance marquée comme terminée');
+    }
+}
+
+function deleteMaintenance(maintenanceId) {
+    if (!hasPermission('canDeleteItems')) {
+        showError('Vous n\'avez pas la permission de supprimer des maintenances');
+        return;
+    }
+
+    const maintenance = maintenanceRecords.find(m => m.id === maintenanceId);
+    if (!maintenance) return;
+
+    if (confirm(`Supprimer cette maintenance pour "${maintenance.itemName}"?`)) {
+        maintenanceRecords = maintenanceRecords.filter(m => m.id !== maintenanceId);
+        localStorage.setItem('maintenanceRecords', JSON.stringify(maintenanceRecords));
+
+        // Add audit log
+        addAuditLog('delete', 'maintenance', {
+            maintenanceId: maintenanceId,
+            itemName: maintenance.itemName
+        });
+
+        renderMaintenanceList();
+        showSuccess('Maintenance supprimée');
+    }
+}
+
+function filterMaintenances() {
+    renderMaintenanceList();
+}
+
+function renderMaintenanceList() {
+    const container = document.getElementById('maintenance-list');
+    const filter = document.getElementById('maintenance-filter').value;
+
+    let filtered = maintenanceRecords;
+    if (filter === 'in-progress') {
+        filtered = maintenanceRecords.filter(m => m.status === 'in-progress');
+    } else if (filter === 'completed') {
+        filtered = maintenanceRecords.filter(m => m.status === 'completed');
+    }
+
+    // Sort by date (newest first)
+    filtered = filtered.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+
+    if (filtered.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🔧</div>
+                <h3>Aucune maintenance enregistrée</h3>
+                <p>Cliquez sur "Nouvelle maintenance" pour commencer</p>
+            </div>
+        `;
+        return;
+    }
+
+    const typeLabels = {
+        'maintenance': '🔧 Maintenance',
+        'repair': '🛠️ Réparation',
+        'upgrade': '⬆️ Mise à niveau',
+        'cleaning': '🧹 Nettoyage',
+        'calibration': '⚙️ Calibration'
+    };
+
+    container.innerHTML = filtered.map(maintenance => {
+        const statusClass = maintenance.status === 'completed' ? 'success' : 'warning';
+        const statusLabel = maintenance.status === 'completed' ? 'Terminée' : 'En cours';
+        const statusIcon = maintenance.status === 'completed' ? '✅' : '🔄';
+
+        return `
+            <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 5px 0; color: #333;">
+                            ${typeLabels[maintenance.type] || maintenance.type} - ${maintenance.itemName}
+                        </h3>
+                        <div style="color: #666; font-size: 0.9rem;">
+                            ${statusIcon} <span style="color: ${statusClass === 'success' ? '#28a745' : '#ffc107'}; font-weight: bold;">${statusLabel}</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        ${maintenance.status === 'in-progress' && hasPermission('canEditItems') ? `
+                            <button class="btn btn-success btn-small" onclick="completeMaintenance('${maintenance.id}')" title="Marquer comme terminée">
+                                ✓ Terminer
+                            </button>
+                        ` : ''}
+                        ${hasPermission('canDeleteItems') ? `
+                            <button class="btn btn-danger btn-small" onclick="deleteMaintenance('${maintenance.id}')" title="Supprimer">
+                                🗑️
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                    <strong>Description:</strong> ${maintenance.description}
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.9rem;">
+                    <div>
+                        <strong>📅 Début:</strong> ${formatDate(maintenance.startDate)}
+                    </div>
+                    ${maintenance.endDate ? `
+                        <div>
+                            <strong>📅 Fin prévue:</strong> ${formatDate(maintenance.endDate)}
+                        </div>
+                    ` : ''}
+                    ${maintenance.completedDate ? `
+                        <div>
+                            <strong>✅ Terminée le:</strong> ${formatDate(maintenance.completedDate.split('T')[0])}
+                        </div>
+                    ` : ''}
+                    ${maintenance.cost > 0 ? `
+                        <div>
+                            <strong>💰 Coût:</strong> ${maintenance.cost.toFixed(2)} CHF
+                        </div>
+                    ` : ''}
+                    ${maintenance.technician ? `
+                        <div>
+                            <strong>👤 Technicien:</strong> ${maintenance.technician}
+                        </div>
+                    ` : ''}
+                </div>
+
+                ${maintenance.notes ? `
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 0.85rem; color: #666;">
+                        <strong>Notes:</strong> ${maintenance.notes}
+                    </div>
+                ` : ''}
+
+                <div style="margin-top: 10px; font-size: 0.8rem; color: #999;">
+                    Créée le ${new Date(maintenance.createdAt).toLocaleString('fr-FR')} par ${maintenance.createdBy}
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 // Notification System

@@ -123,12 +123,16 @@
             <button class="btn btn-primary" onclick="showAddItemModal()">➕ Ajouter un Article</button>
             <button class="btn btn-info" onclick="showLoansModal()">👤 Qui a quoi ?</button>
             <button class="btn btn-success" onclick="exportToCSV()">📊 Exporter CSV</button>
+            <button class="btn btn-success" onclick="printInventoryReport()" id="print-report-btn">📄 Imprimer rapport</button>
             <button class="btn btn-primary" onclick="showImportCSVModal()" id="import-csv-btn">📥 Importer CSV</button>
             <button class="btn btn-warning" onclick="showLabelPrintModal()">🏷️ Imprimer étiquettes</button>
             <button class="btn btn-info" onclick="showSuppliersModal()">🏢 Fournisseurs</button>
+            <button class="btn btn-warning" onclick="showMaintenanceModal()" id="maintenance-btn">🔧 Maintenances</button>
+            <button class="btn btn-info" onclick="showStatsModal()">📊 Statistiques</button>
             <button class="btn btn-secondary" onclick="toggleTheme()" id="theme-toggle">🌙 Mode sombre</button>
             <div class="search-container">
                 <input type="text" id="search-input" placeholder="🔍 Rechercher (nom, modèle, catégorie, n° série, emplacement...)" oninput="filterItems()">
+                <button class="btn btn-info btn-small" onclick="showAdvancedSearchModal()" title="Recherche avancée" style="margin-left: 5px;">🔍+</button>
             </div>
             <select id="category-filter" onchange="filterItems()">
                 <option value="">Toutes les catégories</option>
@@ -898,6 +902,287 @@
 
                 <div style="margin-top: 20px; text-align: center;">
                     <button class="btn btn-secondary" onclick="closeBackupModal()">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Maintenance Management Modal -->
+    <div id="maintenance-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>🔧 Gestion des Maintenances & Réparations</h2>
+                <span class="close" onclick="closeMaintenanceModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div>
+                        <button class="btn btn-primary" onclick="showAddMaintenanceModal()">➕ Nouvelle maintenance</button>
+                    </div>
+                    <div>
+                        <select id="maintenance-filter" onchange="filterMaintenances()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                            <option value="all">Toutes</option>
+                            <option value="in-progress">En cours</option>
+                            <option value="completed">Terminées</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="maintenance-list" style="max-height: 500px; overflow-y: auto;">
+                    <!-- Maintenance records will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Maintenance Modal -->
+    <div id="add-maintenance-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Ajouter une Maintenance</h2>
+                <span class="close" onclick="closeAddMaintenanceModal()">&times;</span>
+            </div>
+            <form id="add-maintenance-form" onsubmit="addMaintenance(event)">
+                <div style="padding: 20px;">
+                    <div class="form-group">
+                        <label for="maint-item">Article *</label>
+                        <select id="maint-item" required>
+                            <option value="">-- Sélectionner un article --</option>
+                            <!-- Items will be populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="maint-type">Type *</label>
+                        <select id="maint-type" required>
+                            <option value="maintenance">Maintenance préventive</option>
+                            <option value="repair">Réparation</option>
+                            <option value="upgrade">Mise à niveau</option>
+                            <option value="cleaning">Nettoyage</option>
+                            <option value="calibration">Calibration</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="maint-start-date">Date de début *</label>
+                            <input type="date" id="maint-start-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="maint-end-date">Date de fin prévue</label>
+                            <input type="date" id="maint-end-date">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="maint-cost">Coût (CHF)</label>
+                            <input type="number" id="maint-cost" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="maint-technician">Technicien / Fournisseur</label>
+                            <input type="text" id="maint-technician" placeholder="Nom du technicien ou entreprise">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="maint-description">Description *</label>
+                        <textarea id="maint-description" rows="3" required placeholder="Décrire le problème ou la maintenance à effectuer"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="maint-notes">Notes</label>
+                        <textarea id="maint-notes" rows="2" placeholder="Notes additionnelles"></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddMaintenanceModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Advanced Search Modal -->
+    <div id="advanced-search-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔍 Recherche avancée</h2>
+                <span class="close" onclick="closeAdvancedSearchModal()">&times;</span>
+            </div>
+            <form id="advanced-search-form" onsubmit="applyAdvancedSearch(event)">
+                <div style="padding: 20px;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adv-name">Nom contient</label>
+                            <input type="text" id="adv-name" placeholder="Ex: Clavier">
+                        </div>
+                        <div class="form-group">
+                            <label for="adv-model">Modèle contient</label>
+                            <input type="text" id="adv-model" placeholder="Ex: K380">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adv-category">Catégorie</label>
+                            <select id="adv-category">
+                                <option value="">Toutes</option>
+                                <option value="informatique">🖥️ Informatique</option>
+                                <option value="peripheriques">🖱️ Périphériques</option>
+                                <option value="ecrans">📺 Écrans</option>
+                                <option value="connectique">🔌 Connectique</option>
+                                <option value="alimentation">🔋 Alimentation</option>
+                                <option value="docking">🔗 Docking & Hubs</option>
+                                <option value="audio">🎧 Audio</option>
+                                <option value="reseau">📡 Réseau</option>
+                                <option value="stockage">💾 Stockage</option>
+                                <option value="mobile">📱 Mobile</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="adv-stock-status">État du stock</label>
+                            <select id="adv-stock-status">
+                                <option value="">Tous</option>
+                                <option value="in-stock">En stock</option>
+                                <option value="low-stock">Stock faible</option>
+                                <option value="out-stock">Épuisé</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adv-quantity-min">Quantité min</label>
+                            <input type="number" id="adv-quantity-min" min="0" placeholder="Min">
+                        </div>
+                        <div class="form-group">
+                            <label for="adv-quantity-max">Quantité max</label>
+                            <input type="number" id="adv-quantity-max" min="0" placeholder="Max">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adv-price-min">Prix min (CHF)</label>
+                            <input type="number" id="adv-price-min" min="0" step="0.01" placeholder="Min">
+                        </div>
+                        <div class="form-group">
+                            <label for="adv-price-max">Prix max (CHF)</label>
+                            <input type="number" id="adv-price-max" min="0" step="0.01" placeholder="Max">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adv-location">Emplacement contient</label>
+                            <input type="text" id="adv-location" placeholder="Ex: Armoire A">
+                        </div>
+                        <div class="form-group">
+                            <label for="adv-supplier">Fournisseur contient</label>
+                            <input type="text" id="adv-supplier" placeholder="Ex: Dell">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adv-purchase-date-from">Date d'achat de</label>
+                            <input type="date" id="adv-purchase-date-from">
+                        </div>
+                        <div class="form-group">
+                            <label for="adv-purchase-date-to">Date d'achat à</label>
+                            <input type="date" id="adv-purchase-date-to">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adv-serial">Numéro de série contient</label>
+                        <input type="text" id="adv-serial" placeholder="Ex: SN-2024">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adv-notes">Notes contiennent</label>
+                        <input type="text" id="adv-notes" placeholder="Ex: Garantie">
+                    </div>
+
+                    <div style="background: #f0f0f0; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                        <strong>Résultats:</strong> <span id="adv-search-count">0 articles trouvés</span>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="resetAdvancedSearch()">Réinitialiser</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeAdvancedSearchModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Rechercher</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistics Dashboard Modal -->
+    <div id="stats-modal" class="modal">
+        <div class="modal-content modal-large" style="max-width: 1200px;">
+            <div class="modal-header">
+                <h2>📊 Tableau de bord - Statistiques avancées</h2>
+                <span class="close" onclick="closeStatsModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <!-- KPIs Summary -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Valeur totale du stock</div>
+                        <div id="kpi-total-value" style="font-size: 2rem; font-weight: bold; margin-top: 10px;">0 CHF</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Prix moyen par article</div>
+                        <div id="kpi-avg-price" style="font-size: 2rem; font-weight: bold; margin-top: 10px;">0 CHF</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Taux de rotation</div>
+                        <div id="kpi-rotation" style="font-size: 2rem; font-weight: bold; margin-top: 10px;">0%</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Articles actifs</div>
+                        <div id="kpi-active-items" style="font-size: 2rem; font-weight: bold; margin-top: 10px;">0</div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px;">
+                    <!-- Category Distribution -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3 style="margin-top: 0; color: #333;">📦 Répartition par catégorie</h3>
+                        <canvas id="category-chart" style="max-height: 300px;"></canvas>
+                    </div>
+
+                    <!-- Stock Status -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3 style="margin-top: 0; color: #333;">📊 État du stock</h3>
+                        <canvas id="stock-status-chart" style="max-height: 300px;"></canvas>
+                    </div>
+
+                    <!-- Value by Category -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3 style="margin-top: 0; color: #333;">💰 Valeur par catégorie</h3>
+                        <canvas id="value-chart" style="max-height: 300px;"></canvas>
+                    </div>
+
+                    <!-- Top Locations -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3 style="margin-top: 0; color: #333;">📍 Top emplacements</h3>
+                        <canvas id="location-chart" style="max-height: 300px;"></canvas>
+                    </div>
+
+                    <!-- Monthly Activity -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); grid-column: 1 / -1;">
+                        <h3 style="margin-top: 0; color: #333;">📈 Activité mensuelle (derniers 6 mois)</h3>
+                        <canvas id="activity-chart" style="max-height: 250px;"></canvas>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn btn-secondary" onclick="closeStatsModal()">Fermer</button>
                 </div>
             </div>
         </div>
