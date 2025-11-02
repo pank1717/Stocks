@@ -306,6 +306,9 @@ function updateUserInterface() {
 
     const auditLogBtn = document.getElementById('audit-log-btn');
     if (auditLogBtn) auditLogBtn.style.display = hasPermission('canManageUsers') ? 'inline-block' : 'none';
+
+    const backupBtn = document.getElementById('backup-btn');
+    if (backupBtn) backupBtn.style.display = hasPermission('canManageUsers') ? 'inline-block' : 'none';
 }
 
 // Location Management
@@ -859,7 +862,9 @@ function renderAuditLogs(filters = {}) {
         'create': '➕',
         'update': '✏️',
         'delete': '🗑️',
-        'stock_adjustment': '📊'
+        'stock_adjustment': '📊',
+        'backup_export': '📥',
+        'backup_restore_start': '📤'
     };
 
     const typeLabels = {
@@ -867,7 +872,8 @@ function renderAuditLogs(filters = {}) {
         'user': 'Utilisateur',
         'supplier': 'Fournisseur',
         'auth': 'Authentification',
-        'loan': 'Prêt'
+        'loan': 'Prêt',
+        'system': 'Système'
     };
 
     const actionLabels = {
@@ -877,7 +883,9 @@ function renderAuditLogs(filters = {}) {
         'create': 'Création',
         'update': 'Modification',
         'delete': 'Suppression',
-        'stock_adjustment': 'Ajustement stock'
+        'stock_adjustment': 'Ajustement stock',
+        'backup_export': 'Export sauvegarde',
+        'backup_restore_start': 'Restauration sauvegarde'
     };
 
     let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
@@ -928,6 +936,49 @@ function clearAuditFilters() {
     document.getElementById('audit-filter-action').value = '';
     document.getElementById('audit-filter-type').value = '';
     renderAuditLogs();
+}
+
+function exportAuditLogsToCSV() {
+    const action = document.getElementById('audit-filter-action').value;
+    const targetType = document.getElementById('audit-filter-type').value;
+
+    const filters = {};
+    if (action) filters.action = action;
+    if (targetType) filters.targetType = targetType;
+
+    const logs = getAuditLogs(filters);
+
+    if (logs.length === 0) {
+        showToast('Info', 'Aucun log à exporter', 'info');
+        return;
+    }
+
+    // Create CSV header
+    let csv = 'ID,Date/Heure,Utilisateur,Action,Type,Détails\n';
+
+    // Add rows
+    logs.forEach(log => {
+        const date = new Date(log.timestamp).toLocaleString('fr-FR');
+        const details = JSON.stringify(log.details).replace(/"/g, '""'); // Escape quotes
+
+        csv += `"${log.id}","${date}","${log.user}","${log.action}","${log.targetType}","${details}"\n`;
+    });
+
+    // Create blob and download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    link.setAttribute('href', url);
+    link.setAttribute('download', `audit_logs_${timestamp}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast('Succès', `${logs.length} entrées exportées en CSV`, 'success');
 }
 
 // ===== User Profile Functions =====
@@ -1051,6 +1102,152 @@ function changePassword(event) {
 
         showToast('Succès', 'Mot de passe modifié avec succès', 'success');
         closeProfileModal();
+    }
+}
+
+// ===== Backup and Restore Functions =====
+function showBackupModal() {
+    document.getElementById('backup-modal').classList.add('show');
+}
+
+function closeBackupModal() {
+    document.getElementById('backup-modal').classList.remove('show');
+}
+
+function exportBackup() {
+    // Collect all data from localStorage
+    const backupData = {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        exportedBy: currentUser.username,
+        data: {
+            users: JSON.parse(localStorage.getItem('users') || '[]'),
+            items: JSON.parse(localStorage.getItem('items') || '[]'),
+            suppliers: JSON.parse(localStorage.getItem('suppliers') || '[]'),
+            locations: JSON.parse(localStorage.getItem('locations') || '[]'),
+            auditLogs: JSON.parse(localStorage.getItem('auditLogs') || '[]'),
+            loans: JSON.parse(localStorage.getItem('loans') || '[]'),
+            notifications: JSON.parse(localStorage.getItem('notifications') || '[]'),
+            theme: localStorage.getItem('theme') || 'light'
+        }
+    };
+
+    // Create JSON blob
+    const json = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    // Create download link
+    const link = document.createElement('a');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+    link.setAttribute('href', url);
+    link.setAttribute('download', `stock_backup_${timestamp}.json`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Log audit event
+    logAuditEvent('backup_export', {
+        itemCount: backupData.data.items.length,
+        userCount: backupData.data.users.length,
+        supplierCount: backupData.data.suppliers.length,
+        auditLogCount: backupData.data.auditLogs.length
+    }, 'system');
+
+    showToast('Succès', 'Sauvegarde exportée avec succès', 'success');
+}
+
+function handleRestoreFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Verify it's a JSON file
+    if (!file.name.endsWith('.json')) {
+        showToast('Erreur', 'Le fichier doit être au format JSON', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const backupData = JSON.parse(e.target.result);
+
+            // Validate backup structure
+            if (!backupData.version || !backupData.data) {
+                throw new Error('Format de sauvegarde invalide');
+            }
+
+            // Show confirmation dialog
+            const itemCount = backupData.data.items?.length || 0;
+            const userCount = backupData.data.users?.length || 0;
+            const supplierCount = backupData.data.suppliers?.length || 0;
+            const exportDate = new Date(backupData.exportDate).toLocaleString('fr-FR');
+
+            const confirmed = confirm(
+                `⚠️ CONFIRMATION DE RESTAURATION\n\n` +
+                `Cette sauvegarde contient:\n` +
+                `- ${itemCount} articles\n` +
+                `- ${userCount} utilisateurs\n` +
+                `- ${supplierCount} fournisseurs\n` +
+                `- Exportée le: ${exportDate}\n` +
+                `- Exportée par: ${backupData.exportedBy || 'Inconnu'}\n\n` +
+                `ATTENTION: Cette action remplacera TOUTES vos données actuelles.\n` +
+                `Cette opération est IRRÉVERSIBLE.\n\n` +
+                `Voulez-vous vraiment continuer ?`
+            );
+
+            if (!confirmed) {
+                showToast('Info', 'Restauration annulée', 'info');
+                return;
+            }
+
+            // Restore data
+            restoreBackup(backupData);
+
+        } catch (error) {
+            console.error('Error reading backup file:', error);
+            showToast('Erreur', 'Impossible de lire le fichier de sauvegarde: ' + error.message, 'error');
+        }
+    };
+
+    reader.readAsText(file);
+
+    // Reset file input
+    event.target.value = '';
+}
+
+function restoreBackup(backupData) {
+    try {
+        // Log audit event BEFORE restoration
+        logAuditEvent('backup_restore_start', {
+            exportDate: backupData.exportDate,
+            exportedBy: backupData.exportedBy,
+            itemCount: backupData.data.items?.length || 0,
+            userCount: backupData.data.users?.length || 0
+        }, 'system');
+
+        // Restore all data
+        if (backupData.data.users) localStorage.setItem('users', JSON.stringify(backupData.data.users));
+        if (backupData.data.items) localStorage.setItem('items', JSON.stringify(backupData.data.items));
+        if (backupData.data.suppliers) localStorage.setItem('suppliers', JSON.stringify(backupData.data.suppliers));
+        if (backupData.data.locations) localStorage.setItem('locations', JSON.stringify(backupData.data.locations));
+        if (backupData.data.auditLogs) localStorage.setItem('auditLogs', JSON.stringify(backupData.data.auditLogs));
+        if (backupData.data.loans) localStorage.setItem('loans', JSON.stringify(backupData.data.loans));
+        if (backupData.data.notifications) localStorage.setItem('notifications', JSON.stringify(backupData.data.notifications));
+        if (backupData.data.theme) localStorage.setItem('theme', backupData.data.theme);
+
+        showToast('Succès', 'Sauvegarde restaurée avec succès. Rechargement de la page...', 'success');
+
+        // Reload page after 2 seconds
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+
+    } catch (error) {
+        console.error('Error restoring backup:', error);
+        showToast('Erreur', 'Erreur lors de la restauration: ' + error.message, 'error');
     }
 }
 
