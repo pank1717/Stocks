@@ -115,6 +115,136 @@ function hasPermission(permission) {
     return PERMISSIONS[currentUser.role]?.[permission] || false;
 }
 
+// ===== Password Security Functions =====
+function hashPassword(password) {
+    // Use SHA256 to hash the password
+    return CryptoJS.SHA256(password).toString();
+}
+
+function verifyPassword(inputPassword, storedHash) {
+    // Hash the input and compare
+    return hashPassword(inputPassword) === storedHash;
+}
+
+// Migrate existing plain text passwords to hashed passwords
+function migratePasswordsToHash() {
+    let migrated = false;
+    users.forEach(user => {
+        // Check if password is not already hashed (hashed passwords are 64 chars long)
+        if (user.password && user.password.length !== 64) {
+            console.log(`Migrating password for user: ${user.username}`);
+            user.password = hashPassword(user.password);
+            migrated = true;
+        }
+    });
+
+    if (migrated) {
+        localStorage.setItem('users', JSON.stringify(users));
+        console.log('Password migration completed');
+    }
+}
+
+// Run migration on startup
+migratePasswordsToHash();
+
+// ===== Session Timeout Management =====
+const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+
+function updateLastActivity() {
+    localStorage.setItem('lastActivity', Date.now().toString());
+}
+
+function checkSessionTimeout() {
+    const lastActivity = localStorage.getItem('lastActivity');
+    if (!lastActivity) {
+        updateLastActivity();
+        return;
+    }
+
+    const timeSinceLastActivity = Date.now() - parseInt(lastActivity);
+
+    if (timeSinceLastActivity > SESSION_TIMEOUT) {
+        // Session expired
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('lastActivity');
+        alert('⏱️ Votre session a expiré après 2 heures d\'inactivité. Veuillez vous reconnecter.');
+        window.location.href = 'login.html';
+        throw new Error('Session expired');
+    }
+}
+
+// Initialize activity tracking
+updateLastActivity();
+
+// Check session timeout every minute
+setInterval(checkSessionTimeout, 60000);
+
+// Update activity on user interactions
+document.addEventListener('click', updateLastActivity);
+document.addEventListener('keydown', updateLastActivity);
+document.addEventListener('scroll', updateLastActivity);
+
+// ===== Audit Trail System =====
+let auditLogs = JSON.parse(localStorage.getItem('auditLogs') || '[]');
+
+function logAuditEvent(action, details, targetType = 'item') {
+    const auditEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        user: currentUser ? currentUser.username : 'Unknown',
+        userId: currentUser ? currentUser.id : null,
+        action: action, // 'create', 'update', 'delete', 'login', 'logout', 'stock_adjustment', etc.
+        targetType: targetType, // 'item', 'user', 'supplier', 'loan', etc.
+        details: details,
+        ipAddress: null // Could be added with backend
+    };
+
+    auditLogs.unshift(auditEntry); // Add to beginning
+
+    // Keep only last 1000 entries to prevent localStorage overflow
+    if (auditLogs.length > 1000) {
+        auditLogs = auditLogs.slice(0, 1000);
+    }
+
+    localStorage.setItem('auditLogs', JSON.stringify(auditLogs));
+    console.log('Audit:', auditEntry);
+}
+
+function getAuditLogs(filter = {}) {
+    let filtered = [...auditLogs];
+
+    if (filter.action) {
+        filtered = filtered.filter(log => log.action === filter.action);
+    }
+
+    if (filter.targetType) {
+        filtered = filtered.filter(log => log.targetType === filter.targetType);
+    }
+
+    if (filter.userId) {
+        filtered = filtered.filter(log => log.userId === filter.userId);
+    }
+
+    if (filter.startDate) {
+        filtered = filtered.filter(log => new Date(log.timestamp) >= new Date(filter.startDate));
+    }
+
+    if (filter.endDate) {
+        filtered = filtered.filter(log => new Date(log.timestamp) <= new Date(filter.endDate));
+    }
+
+    return filtered;
+}
+
+function clearOldAuditLogs(daysToKeep = 30) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+
+    auditLogs = auditLogs.filter(log => new Date(log.timestamp) >= cutoffDate);
+    localStorage.setItem('auditLogs', JSON.stringify(auditLogs));
+}
+
 // Check authentication before loading app
 const isAuthenticated = localStorage.getItem('isAuthenticated');
 if (!isAuthenticated || isAuthenticated !== 'true' || !currentUser) {
@@ -126,6 +256,11 @@ if (!isAuthenticated || isAuthenticated !== 'true' || !currentUser) {
 // Add logout function
 function logout() {
     if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
+        // Log audit event before logout
+        logAuditEvent('logout', {
+            username: currentUser.username
+        }, 'auth');
+
         localStorage.removeItem('isAuthenticated');
         localStorage.removeItem('currentUser');
         window.location.href = 'login.html';
@@ -168,6 +303,9 @@ function updateUserInterface() {
 
     const userManagementBtn = document.getElementById('user-management-btn');
     if (userManagementBtn) userManagementBtn.style.display = hasPermission('canManageUsers') ? 'inline-block' : 'none';
+
+    const auditLogBtn = document.getElementById('audit-log-btn');
+    if (auditLogBtn) auditLogBtn.style.display = hasPermission('canManageUsers') ? 'inline-block' : 'none';
 }
 
 // Location Management
@@ -481,7 +619,7 @@ function saveUser(event) {
 
             // Only update password if provided
             if (password) {
-                users[index].password = password;
+                users[index].password = hashPassword(password);
             }
 
             // If editing current user, update currentUser object
@@ -490,6 +628,14 @@ function saveUser(event) {
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 updateUserInterface();
             }
+
+            // Log audit event
+            logAuditEvent('update', {
+                targetUsername: username,
+                targetUserId: userId,
+                role: role,
+                passwordChanged: !!password
+            }, 'user');
 
             showToast('Succès', 'Utilisateur modifié avec succès', 'success');
         }
@@ -504,12 +650,20 @@ function saveUser(event) {
             id: Date.now().toString(),
             username: username,
             email: email,
-            password: password,
+            password: hashPassword(password),
             role: role,
             created: new Date().toISOString()
         };
 
         users.push(newUser);
+
+        // Log audit event
+        logAuditEvent('create', {
+            targetUsername: username,
+            targetUserId: newUser.id,
+            role: role
+        }, 'user');
+
         showToast('Succès', 'Utilisateur ajouté avec succès', 'success');
     }
 
@@ -536,6 +690,13 @@ function deleteUser(userId) {
     }
 
     if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur "${user.username}" ?`)) {
+        // Log audit event before deletion
+        logAuditEvent('delete', {
+            targetUsername: user.username,
+            targetUserId: userId,
+            role: user.role
+        }, 'user');
+
         users = users.filter(u => u.id !== userId);
         localStorage.setItem('users', JSON.stringify(users));
         renderUsersTable();
@@ -589,6 +750,101 @@ function switchRole(role) {
     showToast('Rôle changé', `Vous êtes maintenant connecté en tant que ${roleLabels[role]}`, 'success');
 }
 
+// ===== Audit Log Viewer Functions =====
+function showAuditLogModal() {
+    renderAuditLogs();
+    document.getElementById('audit-log-modal').classList.add('show');
+}
+
+function closeAuditLogModal() {
+    document.getElementById('audit-log-modal').classList.remove('show');
+}
+
+function renderAuditLogs(filters = {}) {
+    const container = document.getElementById('audit-logs-container');
+    const logs = getAuditLogs(filters);
+
+    if (logs.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">Aucun journal d\'audit trouvé</p>';
+        return;
+    }
+
+    const actionIcons = {
+        'login': '🔓',
+        'logout': '🔒',
+        'create': '➕',
+        'update': '✏️',
+        'delete': '🗑️',
+        'stock_adjustment': '📊'
+    };
+
+    const typeLabels = {
+        'item': 'Article',
+        'user': 'Utilisateur',
+        'supplier': 'Fournisseur',
+        'auth': 'Authentification',
+        'loan': 'Prêt'
+    };
+
+    const actionLabels = {
+        'login': 'Connexion',
+        'logout': 'Déconnexion',
+        'create': 'Création',
+        'update': 'Modification',
+        'delete': 'Suppression',
+        'stock_adjustment': 'Ajustement stock'
+    };
+
+    let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+
+    logs.forEach(log => {
+        const date = new Date(log.timestamp);
+        const formattedDate = date.toLocaleString('fr-FR');
+        const icon = actionIcons[log.action] || '📝';
+        const typeLabel = typeLabels[log.targetType] || log.targetType;
+        const actionLabel = actionLabels[log.action] || log.action;
+
+        html += `
+            <div style="background: white; padding: 12px; border-radius: 6px; border-left: 4px solid #667eea; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 1.2rem;">${icon}</span>
+                        <strong>${actionLabel}</strong>
+                        <span style="background: #f0f0f0; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem;">${typeLabel}</span>
+                    </div>
+                    <span style="color: #666; font-size: 0.85rem;">${formattedDate}</span>
+                </div>
+                <div style="color: #555; font-size: 0.9rem; margin-bottom: 6px;">
+                    <strong>Utilisateur:</strong> ${log.user}
+                </div>
+                <div style="color: #777; font-size: 0.85rem; font-family: monospace; background: #f9f9f9; padding: 6px; border-radius: 4px;">
+                    ${JSON.stringify(log.details, null, 2).replace(/[{}",]/g, '').trim()}
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function filterAuditLogs() {
+    const action = document.getElementById('audit-filter-action').value;
+    const targetType = document.getElementById('audit-filter-type').value;
+
+    const filters = {};
+    if (action) filters.action = action;
+    if (targetType) filters.targetType = targetType;
+
+    renderAuditLogs(filters);
+}
+
+function clearAuditFilters() {
+    document.getElementById('audit-filter-action').value = '';
+    document.getElementById('audit-filter-type').value = '';
+    renderAuditLogs();
+}
+
 // Initialize app on load
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
@@ -635,7 +891,17 @@ async function saveItem(item) {
         });
 
         if (!response.ok) throw new Error('Failed to save item');
-        return await response.json();
+        const result = await response.json();
+
+        // Log audit event
+        logAuditEvent('create', {
+            itemName: item.name,
+            itemId: result.id,
+            category: item.category,
+            quantity: item.quantity
+        }, 'item');
+
+        return result;
     } catch (error) {
         console.error('Error saving item:', error);
         showError('Erreur lors de l\'enregistrement de l\'article');
@@ -654,7 +920,16 @@ async function updateItemAPI(itemId, itemData) {
         });
 
         if (!response.ok) throw new Error('Failed to update item');
-        return await response.json();
+        const result = await response.json();
+
+        // Log audit event
+        logAuditEvent('update', {
+            itemName: itemData.name,
+            itemId: itemId,
+            changes: itemData
+        }, 'item');
+
+        return result;
     } catch (error) {
         console.error('Error updating item:', error);
         showError('Erreur lors de la mise à jour de l\'article');
@@ -669,7 +944,14 @@ async function deleteItemAPI(itemId) {
         });
 
         if (!response.ok) throw new Error('Failed to delete item');
-        return await response.json();
+        const result = await response.json();
+
+        // Log audit event
+        logAuditEvent('delete', {
+            itemId: itemId
+        }, 'item');
+
+        return result;
     } catch (error) {
         console.error('Error deleting item:', error);
         showError('Erreur lors de la suppression de l\'article');
@@ -691,7 +973,17 @@ async function adjustStockAPI(itemId, adjustmentData) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to adjust stock');
         }
-        return await response.json();
+        const result = await response.json();
+
+        // Log audit event
+        logAuditEvent('stock_adjustment', {
+            itemId: itemId,
+            adjustment: adjustmentData.adjustment,
+            reason: adjustmentData.reason,
+            newQuantity: result.quantity
+        }, 'item');
+
+        return result;
     } catch (error) {
         console.error('Error adjusting stock:', error);
         showError(error.message || 'Erreur lors de l\'ajustement du stock');

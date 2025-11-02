@@ -187,6 +187,7 @@
             to { transform: rotate(360deg); }
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js" integrity="sha512-a+SUDuwNzXDvz4XrIcXHuCf089/iJAoN4lmrXJg18XnduKK6YlDHNRalv4yd1N40OKI80tFidF+rqTFKGPoWFQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
     <div class="login-container">
@@ -226,6 +227,19 @@
     </div>
 
     <script>
+        // ===== Password Security Functions =====
+        function hashPassword(password) {
+            return CryptoJS.SHA256(password).toString();
+        }
+
+        function verifyPassword(inputPassword, storedHash) {
+            // For migration: if stored password is not hashed (length !== 64), hash it first
+            if (storedHash && storedHash.length !== 64) {
+                return inputPassword === storedHash; // Plain text comparison for migration
+            }
+            return hashPassword(inputPassword) === storedHash;
+        }
+
         // Load users from localStorage
         let users = JSON.parse(localStorage.getItem('users') || '[]');
 
@@ -234,7 +248,7 @@
             users.push({
                 id: '1',
                 username: 'admin',
-                password: 'admin',
+                password: hashPassword('admin'),
                 role: 'admin',
                 email: 'admin@example.com',
                 created: new Date().toISOString()
@@ -262,13 +276,28 @@
 
             // Simulate network delay for better UX
             setTimeout(() => {
-                // Find user
-                const user = users.find(u => u.username === username && u.password === password);
+                // Find user by username first
+                const user = users.find(u => u.username === username);
 
-                if (user) {
+                // Then verify password with hash
+                if (user && verifyPassword(password, user.password)) {
                     // Login successful
                     localStorage.setItem('currentUser', JSON.stringify(user));
                     localStorage.setItem('isAuthenticated', 'true');
+                    localStorage.setItem('lastActivity', Date.now().toString());
+
+                    // Log audit event for login
+                    const auditLogs = JSON.parse(localStorage.getItem('auditLogs') || '[]');
+                    auditLogs.unshift({
+                        id: Date.now().toString(),
+                        timestamp: new Date().toISOString(),
+                        user: user.username,
+                        userId: user.id,
+                        action: 'login',
+                        targetType: 'auth',
+                        details: { username: user.username }
+                    });
+                    localStorage.setItem('auditLogs', JSON.stringify(auditLogs));
 
                     // Redirect to main app
                     window.location.href = 'index.html';
