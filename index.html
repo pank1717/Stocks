@@ -13,6 +13,7 @@
         <header>
             <div style="position: absolute; top: 10px; left: 20px; display: flex; align-items: center; gap: 15px;">
                 <div id="user-info" style="color: white; font-size: 0.9rem;"></div>
+                <button class="btn btn-small btn-secondary" onclick="showProfileModal()" style="font-size: 0.85rem;">👤 Mon Profil</button>
                 <button class="btn btn-small btn-secondary" onclick="showUserManagementModal()" id="user-management-btn" style="font-size: 0.85rem;">⚙️ Utilisateurs</button>
                 <button class="btn btn-small btn-secondary" onclick="showAuditLogModal()" id="audit-log-btn" style="font-size: 0.85rem; display: none;">📋 Audit</button>
                 <button class="btn btn-small btn-secondary" onclick="logout()" style="font-size: 0.85rem;">🚪 Déconnexion</button>
@@ -670,8 +671,16 @@
 
                 <div class="form-group" id="user-password-group">
                     <label for="user-password">Mot de passe *</label>
-                    <input type="password" id="user-password" minlength="4">
-                    <small style="color: #666;">Minimum 4 caractères</small>
+                    <input type="password" id="user-password" minlength="8" oninput="checkPasswordStrength()">
+                    <div id="password-strength" style="margin-top: 8px; display: none;">
+                        <div style="height: 4px; background: #e0e0e0; border-radius: 2px; overflow: hidden;">
+                            <div id="password-strength-bar" style="height: 100%; width: 0%; background: #ccc; transition: all 0.3s;"></div>
+                        </div>
+                        <small id="password-strength-text" style="color: #666; display: block; margin-top: 4px;"></small>
+                    </div>
+                    <small style="color: #666; display: block; margin-top: 4px;">
+                        <strong>Exigences:</strong> Min. 8 caractères, 1 majuscule, 1 minuscule, 1 chiffre
+                    </small>
                 </div>
 
                 <div class="form-group">
@@ -691,6 +700,56 @@
         </div>
     </div>
 
+    <!-- User Profile Modal -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>👤 Mon Profil</h2>
+                <span class="close" onclick="closeProfileModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="margin-top: 0; margin-bottom: 10px;">Informations du compte</h3>
+                    <p><strong>Nom d'utilisateur:</strong> <span id="profile-username"></span></p>
+                    <p><strong>Email:</strong> <span id="profile-email"></span></p>
+                    <p><strong>Rôle:</strong> <span id="profile-role"></span></p>
+                </div>
+
+                <h3 style="margin-bottom: 15px;">🔐 Changer le mot de passe</h3>
+                <form id="change-password-form" onsubmit="changePassword(event)">
+                    <div class="form-group">
+                        <label for="current-password">Mot de passe actuel *</label>
+                        <input type="password" id="current-password" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new-password">Nouveau mot de passe *</label>
+                        <input type="password" id="new-password" minlength="8" required oninput="checkNewPasswordStrength()">
+                        <div id="new-password-strength" style="margin-top: 8px; display: none;">
+                            <div style="height: 4px; background: #e0e0e0; border-radius: 2px; overflow: hidden;">
+                                <div id="new-password-strength-bar" style="height: 100%; width: 0%; background: #ccc; transition: all 0.3s;"></div>
+                            </div>
+                            <small id="new-password-strength-text" style="color: #666; display: block; margin-top: 4px;"></small>
+                        </div>
+                        <small style="color: #666; display: block; margin-top: 4px;">
+                            <strong>Exigences:</strong> Min. 8 caractères, 1 majuscule, 1 minuscule, 1 chiffre
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm-password">Confirmer le nouveau mot de passe *</label>
+                        <input type="password" id="confirm-password" minlength="8" required>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Changer le mot de passe</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Audit Log Viewer Modal -->
     <div id="audit-log-modal" class="modal">
         <div class="modal-content modal-large">
@@ -704,6 +763,7 @@
                         <option value="">Toutes les actions</option>
                         <option value="login">Connexion</option>
                         <option value="logout">Déconnexion</option>
+                        <option value="password_change">Changement mot de passe</option>
                         <option value="create">Création</option>
                         <option value="update">Modification</option>
                         <option value="delete">Suppression</option>

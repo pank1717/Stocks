@@ -240,6 +240,54 @@
             return hashPassword(inputPassword) === storedHash;
         }
 
+        // ===== Login Attempt Limiting =====
+        const MAX_LOGIN_ATTEMPTS = 5;
+        const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
+
+        function getLoginAttempts() {
+            const data = localStorage.getItem('loginAttempts');
+            if (!data) return { count: 0, lockoutUntil: null };
+            return JSON.parse(data);
+        }
+
+        function isAccountLocked() {
+            const attempts = getLoginAttempts();
+            if (!attempts.lockoutUntil) return false;
+
+            const now = Date.now();
+            if (now < attempts.lockoutUntil) {
+                return true;
+            } else {
+                // Lockout expired, reset
+                resetLoginAttempts();
+                return false;
+            }
+        }
+
+        function recordFailedAttempt() {
+            const attempts = getLoginAttempts();
+            attempts.count += 1;
+
+            if (attempts.count >= MAX_LOGIN_ATTEMPTS) {
+                attempts.lockoutUntil = Date.now() + LOCKOUT_DURATION;
+            }
+
+            localStorage.setItem('loginAttempts', JSON.stringify(attempts));
+            return attempts;
+        }
+
+        function resetLoginAttempts() {
+            localStorage.removeItem('loginAttempts');
+        }
+
+        function getRemainingLockoutTime() {
+            const attempts = getLoginAttempts();
+            if (!attempts.lockoutUntil) return 0;
+
+            const remaining = attempts.lockoutUntil - Date.now();
+            return Math.max(0, Math.ceil(remaining / 60000)); // Return minutes
+        }
+
         // Load users from localStorage
         let users = JSON.parse(localStorage.getItem('users') || '[]');
 
@@ -263,6 +311,14 @@
         loginForm.addEventListener('submit', function(e) {
             e.preventDefault();
 
+            // Check if account is locked
+            if (isAccountLocked()) {
+                const remainingMinutes = getRemainingLockoutTime();
+                errorMessage.textContent = `🔒 Compte temporairement bloqué. Trop de tentatives échouées. Réessayez dans ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}.`;
+                errorMessage.classList.add('show');
+                return;
+            }
+
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
 
@@ -281,7 +337,9 @@
 
                 // Then verify password with hash
                 if (user && verifyPassword(password, user.password)) {
-                    // Login successful
+                    // Login successful - reset attempts
+                    resetLoginAttempts();
+
                     localStorage.setItem('currentUser', JSON.stringify(user));
                     localStorage.setItem('isAuthenticated', 'true');
                     localStorage.setItem('lastActivity', Date.now().toString());
@@ -302,10 +360,22 @@
                     // Redirect to main app
                     window.location.href = 'index.html';
                 } else {
-                    // Login failed
+                    // Login failed - record attempt
+                    const attempts = recordFailedAttempt();
+
                     loading.classList.remove('show');
                     loginForm.style.opacity = '1';
-                    errorMessage.textContent = '❌ Nom d\'utilisateur ou mot de passe incorrect';
+
+                    if (attempts.lockoutUntil) {
+                        // Account now locked
+                        const remainingMinutes = getRemainingLockoutTime();
+                        errorMessage.textContent = `🔒 Compte bloqué pendant ${remainingMinutes} minutes. Trop de tentatives échouées (${MAX_LOGIN_ATTEMPTS}).`;
+                    } else {
+                        // Show remaining attempts
+                        const remaining = MAX_LOGIN_ATTEMPTS - attempts.count;
+                        errorMessage.textContent = `❌ Nom d'utilisateur ou mot de passe incorrect. ${remaining} tentative${remaining > 1 ? 's' : ''} restante${remaining > 1 ? 's' : ''}.`;
+                    }
+
                     errorMessage.classList.add('show');
 
                     // Clear password field

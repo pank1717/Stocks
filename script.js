@@ -558,6 +558,72 @@ function renderUsersTable() {
     `;
 }
 
+// ===== Password Strength Validation =====
+function checkPasswordStrength() {
+    const passwordInput = document.getElementById('user-password');
+    const strengthBar = document.getElementById('password-strength-bar');
+    const strengthText = document.getElementById('password-strength-text');
+    const strengthContainer = document.getElementById('password-strength');
+    const password = passwordInput.value;
+
+    if (!password) {
+        strengthContainer.style.display = 'none';
+        return;
+    }
+
+    strengthContainer.style.display = 'block';
+
+    let strength = 0;
+    const checks = {
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[^A-Za-z0-9]/.test(password)
+    };
+
+    // Calculate strength
+    if (checks.length) strength += 20;
+    if (checks.uppercase) strength += 20;
+    if (checks.lowercase) strength += 20;
+    if (checks.number) strength += 20;
+    if (checks.special) strength += 20;
+
+    // Update visual indicator
+    strengthBar.style.width = strength + '%';
+
+    if (strength <= 40) {
+        strengthBar.style.background = '#dc3545';
+        strengthText.textContent = '❌ Faible - Ne respecte pas les exigences';
+        strengthText.style.color = '#dc3545';
+    } else if (strength <= 60) {
+        strengthBar.style.background = '#ffc107';
+        strengthText.textContent = '⚠️ Moyen - Ajoutez des caractères spéciaux';
+        strengthText.style.color = '#ffc107';
+    } else {
+        strengthBar.style.background = '#28a745';
+        strengthText.textContent = '✅ Fort - Excellent mot de passe';
+        strengthText.style.color = '#28a745';
+    }
+}
+
+function validatePasswordStrength(password) {
+    // Minimum requirements
+    if (password.length < 8) {
+        return { valid: false, message: 'Le mot de passe doit contenir au moins 8 caractères' };
+    }
+    if (!/[A-Z]/.test(password)) {
+        return { valid: false, message: 'Le mot de passe doit contenir au moins une majuscule' };
+    }
+    if (!/[a-z]/.test(password)) {
+        return { valid: false, message: 'Le mot de passe doit contenir au moins une minuscule' };
+    }
+    if (!/[0-9]/.test(password)) {
+        return { valid: false, message: 'Le mot de passe doit contenir au moins un chiffre' };
+    }
+    return { valid: true };
+}
+
 function showAddUserModal() {
     document.getElementById('user-form-title').textContent = 'Ajouter un Utilisateur';
     document.getElementById('user-form').reset();
@@ -566,6 +632,10 @@ function showAddUserModal() {
     // Password required for new users
     const passwordInput = document.getElementById('user-password');
     passwordInput.required = true;
+
+    // Reset password strength indicator
+    document.getElementById('password-strength').style.display = 'none';
+    document.getElementById('password-strength-bar').style.width = '0%';
 
     document.getElementById('user-form-modal').classList.add('show');
 }
@@ -590,6 +660,10 @@ function editUser(userId) {
     passwordInput.value = '';
     passwordInput.placeholder = 'Laisser vide pour ne pas changer';
 
+    // Reset password strength indicator
+    document.getElementById('password-strength').style.display = 'none';
+    document.getElementById('password-strength-bar').style.width = '0%';
+
     document.getElementById('user-form-modal').classList.add('show');
 }
 
@@ -607,6 +681,15 @@ function saveUser(event) {
     if (existingUser) {
         showToast('Erreur', 'Ce nom d\'utilisateur existe déjà', 'error');
         return;
+    }
+
+    // Validate password strength if provided
+    if (password) {
+        const validation = validatePasswordStrength(password);
+        if (!validation.valid) {
+            showToast('Erreur', validation.message, 'error');
+            return;
+        }
     }
 
     if (userId) {
@@ -772,6 +855,7 @@ function renderAuditLogs(filters = {}) {
     const actionIcons = {
         'login': '🔓',
         'logout': '🔒',
+        'password_change': '🔑',
         'create': '➕',
         'update': '✏️',
         'delete': '🗑️',
@@ -789,6 +873,7 @@ function renderAuditLogs(filters = {}) {
     const actionLabels = {
         'login': 'Connexion',
         'logout': 'Déconnexion',
+        'password_change': 'Changement mot de passe',
         'create': 'Création',
         'update': 'Modification',
         'delete': 'Suppression',
@@ -843,6 +928,130 @@ function clearAuditFilters() {
     document.getElementById('audit-filter-action').value = '';
     document.getElementById('audit-filter-type').value = '';
     renderAuditLogs();
+}
+
+// ===== User Profile Functions =====
+function showProfileModal() {
+    const roleLabels = {
+        'admin': '👑 Administrateur',
+        'manager': '👨‍💼 Gestionnaire',
+        'viewer': '👁️ Lecteur'
+    };
+
+    document.getElementById('profile-username').textContent = currentUser.username;
+    document.getElementById('profile-email').textContent = currentUser.email;
+    document.getElementById('profile-role').textContent = roleLabels[currentUser.role] || currentUser.role;
+
+    // Reset form
+    document.getElementById('change-password-form').reset();
+    document.getElementById('new-password-strength').style.display = 'none';
+    document.getElementById('new-password-strength-bar').style.width = '0%';
+
+    document.getElementById('profile-modal').classList.add('show');
+}
+
+function closeProfileModal() {
+    document.getElementById('profile-modal').classList.remove('show');
+}
+
+function checkNewPasswordStrength() {
+    const passwordInput = document.getElementById('new-password');
+    const strengthBar = document.getElementById('new-password-strength-bar');
+    const strengthText = document.getElementById('new-password-strength-text');
+    const strengthContainer = document.getElementById('new-password-strength');
+    const password = passwordInput.value;
+
+    if (!password) {
+        strengthContainer.style.display = 'none';
+        return;
+    }
+
+    strengthContainer.style.display = 'block';
+
+    let strength = 0;
+    const checks = {
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[^A-Za-z0-9]/.test(password)
+    };
+
+    // Calculate strength
+    if (checks.length) strength += 20;
+    if (checks.uppercase) strength += 20;
+    if (checks.lowercase) strength += 20;
+    if (checks.number) strength += 20;
+    if (checks.special) strength += 20;
+
+    // Update visual indicator
+    strengthBar.style.width = strength + '%';
+
+    if (strength <= 40) {
+        strengthBar.style.background = '#dc3545';
+        strengthText.textContent = '❌ Faible - Ne respecte pas les exigences';
+        strengthText.style.color = '#dc3545';
+    } else if (strength <= 60) {
+        strengthBar.style.background = '#ffc107';
+        strengthText.textContent = '⚠️ Moyen - Ajoutez des caractères spéciaux';
+        strengthText.style.color = '#ffc107';
+    } else {
+        strengthBar.style.background = '#28a745';
+        strengthText.textContent = '✅ Fort - Excellent mot de passe';
+        strengthText.style.color = '#28a745';
+    }
+}
+
+function changePassword(event) {
+    event.preventDefault();
+
+    const currentPassword = document.getElementById('current-password').value;
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+
+    // Verify current password
+    if (!verifyPassword(currentPassword, currentUser.password)) {
+        showToast('Erreur', 'Le mot de passe actuel est incorrect', 'error');
+        return;
+    }
+
+    // Check if new passwords match
+    if (newPassword !== confirmPassword) {
+        showToast('Erreur', 'Les nouveaux mots de passe ne correspondent pas', 'error');
+        return;
+    }
+
+    // Validate new password strength
+    const validation = validatePasswordStrength(newPassword);
+    if (!validation.valid) {
+        showToast('Erreur', validation.message, 'error');
+        return;
+    }
+
+    // Check if new password is different from current
+    if (verifyPassword(newPassword, currentUser.password)) {
+        showToast('Erreur', 'Le nouveau mot de passe doit être différent de l\'ancien', 'error');
+        return;
+    }
+
+    // Update password
+    const userIndex = users.findIndex(u => u.id === currentUser.id);
+    if (userIndex !== -1) {
+        users[userIndex].password = hashPassword(newPassword);
+        localStorage.setItem('users', JSON.stringify(users));
+
+        // Update current user object
+        currentUser = users[userIndex];
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        // Log audit event
+        logAuditEvent('password_change', {
+            username: currentUser.username
+        }, 'auth');
+
+        showToast('Succès', 'Mot de passe modifié avec succès', 'success');
+        closeProfileModal();
+    }
 }
 
 // Initialize app on load
