@@ -123,6 +123,7 @@
             <button class="btn btn-primary" onclick="showAddItemModal()">➕ Ajouter un Article</button>
             <button class="btn btn-info" onclick="showLoansModal()">👤 Qui a quoi ?</button>
             <button class="btn btn-success" onclick="exportToCSV()">📊 Exporter CSV</button>
+            <button class="btn btn-primary" onclick="showImportCSVModal()" id="import-csv-btn">📥 Importer CSV</button>
             <button class="btn btn-warning" onclick="showLabelPrintModal()">🏷️ Imprimer étiquettes</button>
             <button class="btn btn-info" onclick="showSuppliersModal()">🏢 Fournisseurs</button>
             <button class="btn btn-secondary" onclick="toggleTheme()" id="theme-toggle">🌙 Mode sombre</button>
@@ -897,6 +898,64 @@
 
                 <div style="margin-top: 20px; text-align: center;">
                     <button class="btn btn-secondary" onclick="closeBackupModal()">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSV Import Modal -->
+    <div id="csv-import-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📥 Importer des Articles (CSV)</h2>
+                <span class="close" onclick="closeImportCSVModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div style="background: #e7f3ff; border: 1px solid #2196f3; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong>ℹ️ Format du fichier CSV:</strong>
+                    <p style="margin: 10px 0 5px 0;">Le fichier CSV doit contenir les colonnes suivantes (séparées par des virgules ou points-virgules):</p>
+                    <ul style="margin: 5px 0; padding-left: 20px;">
+                        <li><strong>name</strong> * - Nom de l'article (obligatoire)</li>
+                        <li><strong>model</strong> - Modèle / Spécifications</li>
+                        <li><strong>quantity</strong> * - Quantité initiale (obligatoire, nombre)</li>
+                        <li><strong>alert_threshold</strong> - Seuil d'alerte (nombre, défaut: 5)</li>
+                        <li><strong>category</strong> * - Catégorie (obligatoire: informatique, peripheriques, ecrans, connectique, alimentation, docking, audio, reseau, stockage, mobile)</li>
+                        <li><strong>serial</strong> - Numéro de série</li>
+                        <li><strong>location</strong> - Emplacement physique</li>
+                        <li><strong>supplier</strong> - Fournisseur</li>
+                        <li><strong>purchase_date</strong> - Date d'achat (format: YYYY-MM-DD)</li>
+                        <li><strong>price</strong> - Prix unitaire (nombre)</li>
+                        <li><strong>photo</strong> - Emoji photo (ex: 💻, 🖥️, ⌨️)</li>
+                        <li><strong>notes</strong> - Notes / Commentaires</li>
+                    </ul>
+                </div>
+
+                <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong>⚠️ Attention:</strong> Les articles avec des numéros de série existants seront ignorés pour éviter les doublons.
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-secondary" onclick="downloadCSVTemplate()">
+                        📄 Télécharger un modèle CSV
+                    </button>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="margin-top: 0;">Sélectionner un fichier CSV</h3>
+                    <input type="file" id="csv-file-input" accept=".csv" style="margin-bottom: 15px;">
+                    <div>
+                        <button class="btn btn-primary" onclick="processCSVImport()">
+                            🚀 Importer les articles
+                        </button>
+                    </div>
+                </div>
+
+                <div id="import-results" style="display: none; padding: 20px; border-radius: 8px; margin-top: 20px;">
+                    <!-- Import results will be displayed here -->
+                </div>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn btn-secondary" onclick="closeImportCSVModal()">Fermer</button>
                 </div>
             </div>
         </div>

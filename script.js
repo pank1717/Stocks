@@ -292,6 +292,9 @@ function updateUserInterface() {
     const addItemBtn = document.querySelector('button[onclick="showAddItemModal()"]');
     if (addItemBtn) addItemBtn.style.display = hasPermission('canAddItems') ? 'inline-block' : 'none';
 
+    const importBtn = document.getElementById('import-csv-btn');
+    if (importBtn) importBtn.style.display = hasPermission('canAddItems') ? 'inline-block' : 'none';
+
     const exportBtn = document.querySelector('button[onclick="exportToCSV()"]');
     if (exportBtn) exportBtn.style.display = hasPermission('canExport') ? 'inline-block' : 'none';
 
@@ -1524,12 +1527,64 @@ function showHistoryModal(itemId) {
         createHistoryChart(item);
     }
 
-    // Generate history list
+    // Get audit logs for this item
+    const itemAuditLogs = auditLogs.filter(log =>
+        log.targetType === 'item' &&
+        log.details &&
+        (log.details.itemId === itemId || log.details.itemName === item.name)
+    );
+
     let historyHtml = `<div class="history-list">`;
 
-    if (!item.history || item.history.length === 0) {
-        historyHtml += `<div class="empty-state"><p>Aucun mouvement enregistré pour cet article.</p></div>`;
-    } else {
+    // Section 1: Modifications de l'article (from audit logs)
+    if (itemAuditLogs.length > 0) {
+        historyHtml += `<h3 style="margin: 20px 0 15px 0; color: #667eea; border-bottom: 2px solid #667eea; padding-bottom: 8px;">✏️ Modifications de l'article</h3>`;
+
+        const sortedAuditLogs = [...itemAuditLogs].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        sortedAuditLogs.forEach(log => {
+            let icon = '📝';
+            let actionLabel = log.action;
+            let details = '';
+
+            if (log.action === 'create') {
+                icon = '➕';
+                actionLabel = 'Création';
+                details = `Catégorie: ${log.details.category || 'N/A'}, Quantité initiale: ${log.details.quantity || 0}`;
+            } else if (log.action === 'update') {
+                icon = '✏️';
+                actionLabel = 'Modification';
+                details = 'Article mis à jour';
+            } else if (log.action === 'delete') {
+                icon = '🗑️';
+                actionLabel = 'Suppression';
+                details = 'Article supprimé';
+            } else if (log.action === 'stock_adjustment') {
+                icon = '📊';
+                actionLabel = 'Ajustement stock';
+                details = `Ajustement: ${log.details.adjustment || 0}, Nouvelle quantité: ${log.details.newQuantity || 0}`;
+            }
+
+            const date = new Date(log.timestamp).toLocaleString('fr-FR');
+
+            historyHtml += `
+                <div class="history-item">
+                    <div class="history-icon">${icon}</div>
+                    <div class="history-content">
+                        <div class="history-type">${actionLabel}</div>
+                        <div class="history-details">${details}</div>
+                        <div class="history-person">👤 Par: <strong>${log.user}</strong></div>
+                        <div class="history-date">${date}</div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // Section 2: Mouvements de stock
+    if (item.history && item.history.length > 0) {
+        historyHtml += `<h3 style="margin: 20px 0 15px 0; color: #667eea; border-bottom: 2px solid #667eea; padding-bottom: 8px;">📦 Mouvements de stock</h3>`;
+
         // Sort history by date (newest first)
         const sortedHistory = [...item.history].sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -1554,6 +1609,10 @@ function showHistoryModal(itemId) {
                 </div>
             `;
         });
+    }
+
+    if (itemAuditLogs.length === 0 && (!item.history || item.history.length === 0)) {
+        historyHtml += `<div class="empty-state"><p>Aucun historique disponible pour cet article.</p></div>`;
     }
 
     historyHtml += `</div>`;
@@ -1726,6 +1785,59 @@ async function updateItem(event) {
     } catch (error) {
         // Error already handled in updateItemAPI
     }
+}
+
+function duplicateItem(itemId) {
+    const item = items.find(i => i.id === itemId);
+    if (!item) return;
+
+    // Open add modal
+    showAddItemModal();
+
+    // Pre-fill all fields with source item data
+    document.getElementById('item-name').value = item.name + ' (Copie)';
+    document.getElementById('item-model').value = item.model || '';
+    document.getElementById('item-quantity').value = 0; // Start with 0 quantity for duplicate
+    document.getElementById('item-alert-threshold').value = item.alert_threshold || 5;
+    document.getElementById('item-category').value = item.category;
+    document.getElementById('item-serial').value = ''; // Clear serial number for duplicate
+
+    // Handle location
+    const locationSelect = document.getElementById('item-location-select');
+    const locationInput = document.getElementById('item-location');
+    const locationOptions = Array.from(locationSelect.options).map(opt => opt.value);
+
+    if (item.location && locationOptions.includes(item.location)) {
+        locationSelect.value = item.location;
+        locationInput.style.display = 'none';
+        locationInput.value = '';
+    } else if (item.location) {
+        locationSelect.value = '__other__';
+        locationInput.style.display = 'block';
+        locationInput.value = item.location;
+    }
+
+    // Handle supplier
+    const supplierSelect = document.getElementById('item-supplier-select');
+    const supplierInput = document.getElementById('item-supplier');
+    const supplierOptions = Array.from(supplierSelect.options).map(opt => opt.value);
+
+    if (item.supplier && supplierOptions.includes(item.supplier)) {
+        supplierSelect.value = item.supplier;
+        supplierInput.style.display = 'none';
+        supplierInput.value = '';
+    } else if (item.supplier) {
+        supplierSelect.value = '__other__';
+        supplierInput.style.display = 'block';
+        supplierInput.value = item.supplier;
+    }
+
+    document.getElementById('item-purchase-date').value = item.purchase_date || '';
+    document.getElementById('item-price').value = item.price || '';
+    document.getElementById('item-photo').value = item.photo || '';
+    document.getElementById('item-notes').value = item.notes || '';
+
+    showToast('Info', 'Article dupliqué. Modifiez les données et sauvegardez.', 'info');
 }
 
 async function deleteItem(itemId) {
@@ -1934,6 +2046,11 @@ function renderItems() {
                     ${hasPermission('canEditItems') ? `
                         <button class="btn btn-warning btn-small" onclick="showEditItemModal('${item.id}')">
                             ✏️ Modifier
+                        </button>
+                    ` : ''}
+                    ${hasPermission('canAddItems') ? `
+                        <button class="btn btn-info btn-small" onclick="duplicateItem('${item.id}')" title="Créer une copie de cet article">
+                            📋 Dupliquer
                         </button>
                     ` : ''}
                     ${hasPermission('canDeleteItems') ? `
@@ -2730,6 +2847,353 @@ function exportToCSV() {
     document.body.removeChild(link);
 
     showSuccess('Export CSV réussi!');
+}
+
+// CSV Import Functions
+function showImportCSVModal() {
+    if (!hasPermission('canAddItems')) {
+        showError('Vous n\'avez pas la permission d\'importer des articles');
+        return;
+    }
+
+    // Reset file input and results
+    document.getElementById('csv-file-input').value = '';
+    document.getElementById('import-results').style.display = 'none';
+    document.getElementById('import-results').innerHTML = '';
+
+    document.getElementById('csv-import-modal').classList.add('show');
+}
+
+function closeImportCSVModal() {
+    document.getElementById('csv-import-modal').classList.remove('show');
+}
+
+function downloadCSVTemplate() {
+    // Create template with headers and example rows
+    const headers = [
+        'name',
+        'model',
+        'quantity',
+        'alert_threshold',
+        'category',
+        'serial',
+        'location',
+        'supplier',
+        'purchase_date',
+        'price',
+        'photo',
+        'notes'
+    ];
+
+    const exampleRow1 = [
+        'Clavier sans fil Logitech',
+        'K380 Multi-Device Bluetooth',
+        '15',
+        '5',
+        'peripheriques',
+        'K380-2024-001',
+        'Bureau IT - Armoire A',
+        'Logitech',
+        '2024-01-15',
+        '49.90',
+        '⌨️',
+        'Compatible Mac, Windows, iOS, Android'
+    ];
+
+    const exampleRow2 = [
+        'Écran Dell UltraSharp',
+        '27" 4K U2720Q',
+        '8',
+        '3',
+        'ecrans',
+        'DELL-U2720Q-001',
+        'Stock sécurisé',
+        'Dell',
+        '2024-02-10',
+        '549.00',
+        '📺',
+        'Résolution 3840x2160, USB-C'
+    ];
+
+    // Build CSV content
+    let csvContent = '\uFEFF'; // UTF-8 BOM for Excel compatibility
+    csvContent += headers.join(',') + '\n';
+    csvContent += exampleRow1.map(cell => `"${cell}"`).join(',') + '\n';
+    csvContent += exampleRow2.map(cell => `"${cell}"`).join(',') + '\n';
+
+    // Create download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'modele_import_articles.csv');
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showSuccess('Modèle CSV téléchargé!');
+}
+
+function parseCSV(text) {
+    // Simple CSV parser that handles quoted fields and both comma and semicolon delimiters
+    const lines = text.split('\n');
+    const result = [];
+
+    // Detect delimiter (comma or semicolon)
+    const firstLine = lines[0];
+    const delimiter = firstLine.includes(';') ? ';' : ',';
+
+    for (let line of lines) {
+        if (!line.trim()) continue;
+
+        const row = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+
+            if (char === '"') {
+                if (inQuotes && line[i + 1] === '"') {
+                    current += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (char === delimiter && !inQuotes) {
+                row.push(current.trim());
+                current = '';
+            } else if (char !== '\r') {
+                current += char;
+            }
+        }
+        row.push(current.trim());
+        result.push(row);
+    }
+
+    return result;
+}
+
+function validateCSVRow(row, headers, rowIndex) {
+    const errors = [];
+    const item = {};
+
+    // Map CSV columns to item object
+    headers.forEach((header, index) => {
+        const value = row[index] || '';
+        item[header.toLowerCase().trim()] = value;
+    });
+
+    // Validate required fields
+    if (!item.name || item.name.trim() === '') {
+        errors.push(`Ligne ${rowIndex}: Le nom est obligatoire`);
+    }
+
+    if (!item.quantity || isNaN(parseInt(item.quantity))) {
+        errors.push(`Ligne ${rowIndex}: La quantité doit être un nombre valide`);
+    }
+
+    if (!item.category || item.category.trim() === '') {
+        errors.push(`Ligne ${rowIndex}: La catégorie est obligatoire`);
+    } else {
+        // Validate category value
+        const validCategories = [
+            'informatique', 'peripheriques', 'ecrans', 'connectique',
+            'alimentation', 'docking', 'audio', 'reseau', 'stockage', 'mobile'
+        ];
+        if (!validCategories.includes(item.category.toLowerCase().trim())) {
+            errors.push(`Ligne ${rowIndex}: Catégorie invalide "${item.category}". Valeurs acceptées: ${validCategories.join(', ')}`);
+        }
+    }
+
+    // Validate numeric fields
+    if (item.alert_threshold && isNaN(parseInt(item.alert_threshold))) {
+        errors.push(`Ligne ${rowIndex}: Le seuil d'alerte doit être un nombre`);
+    }
+
+    if (item.price && isNaN(parseFloat(item.price))) {
+        errors.push(`Ligne ${rowIndex}: Le prix doit être un nombre`);
+    }
+
+    // Validate date format
+    if (item.purchase_date && item.purchase_date.trim() !== '') {
+        const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+        if (!datePattern.test(item.purchase_date.trim())) {
+            errors.push(`Ligne ${rowIndex}: La date d'achat doit être au format YYYY-MM-DD`);
+        }
+    }
+
+    return { item, errors };
+}
+
+async function processCSVImport() {
+    const fileInput = document.getElementById('csv-file-input');
+    const resultsDiv = document.getElementById('import-results');
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+        showError('Veuillez sélectionner un fichier CSV');
+        return;
+    }
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = async function(e) {
+        try {
+            const text = e.target.result;
+            const rows = parseCSV(text);
+
+            if (rows.length < 2) {
+                showError('Le fichier CSV doit contenir au moins une ligne d\'en-tête et une ligne de données');
+                return;
+            }
+
+            const headers = rows[0].map(h => h.toLowerCase().trim());
+            const dataRows = rows.slice(1);
+
+            let successCount = 0;
+            let skipCount = 0;
+            let errorCount = 0;
+            const errorMessages = [];
+            const importedItems = [];
+
+            // Process each row
+            for (let i = 0; i < dataRows.length; i++) {
+                const row = dataRows[i];
+
+                // Skip empty rows
+                if (row.every(cell => !cell || cell.trim() === '')) {
+                    continue;
+                }
+
+                const validation = validateCSVRow(row, headers, i + 2);
+
+                if (validation.errors.length > 0) {
+                    errorCount++;
+                    errorMessages.push(...validation.errors);
+                    continue;
+                }
+
+                const itemData = validation.item;
+
+                // Check for duplicate serial number
+                if (itemData.serial && itemData.serial.trim() !== '') {
+                    const existingItem = items.find(item =>
+                        item.serial && item.serial.toLowerCase() === itemData.serial.toLowerCase()
+                    );
+                    if (existingItem) {
+                        skipCount++;
+                        errorMessages.push(`Ligne ${i + 2}: Article ignoré - Numéro de série "${itemData.serial}" déjà existant`);
+                        continue;
+                    }
+                }
+
+                // Create new item
+                const newItem = {
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                    name: itemData.name.trim(),
+                    model: itemData.model ? itemData.model.trim() : '',
+                    quantity: parseInt(itemData.quantity) || 0,
+                    alert_threshold: itemData.alert_threshold ? parseInt(itemData.alert_threshold) : 5,
+                    category: itemData.category.toLowerCase().trim(),
+                    serial: itemData.serial ? itemData.serial.trim() : '',
+                    location: itemData.location ? itemData.location.trim() : '',
+                    supplier: itemData.supplier ? itemData.supplier.trim() : '',
+                    purchase_date: itemData.purchase_date ? itemData.purchase_date.trim() : '',
+                    price: itemData.price ? parseFloat(itemData.price) : 0,
+                    photo: itemData.photo ? itemData.photo.trim() : '',
+                    notes: itemData.notes ? itemData.notes.trim() : '',
+                    history: [],
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+
+                importedItems.push(newItem);
+                successCount++;
+
+                // Small delay to avoid overwhelming the system
+                if (i % 10 === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+            }
+
+            // Save imported items
+            if (importedItems.length > 0) {
+                for (const item of importedItems) {
+                    items.push(item);
+
+                    // Add audit log
+                    addAuditLog('create', 'item', {
+                        itemId: item.id,
+                        itemName: item.name,
+                        category: item.category,
+                        quantity: item.quantity,
+                        source: 'csv_import'
+                    });
+                }
+
+                await saveItems();
+                updateStats();
+                renderItems();
+            }
+
+            // Display results
+            let resultsHTML = '<div>';
+
+            if (successCount > 0) {
+                resultsHTML += `
+                    <div style="background: #d4edda; border: 1px solid #28a745; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                        <strong>✅ Succès:</strong> ${successCount} article(s) importé(s) avec succès
+                    </div>
+                `;
+            }
+
+            if (skipCount > 0) {
+                resultsHTML += `
+                    <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                        <strong>⚠️ Ignorés:</strong> ${skipCount} article(s) ignoré(s) (numéros de série existants)
+                    </div>
+                `;
+            }
+
+            if (errorCount > 0) {
+                resultsHTML += `
+                    <div style="background: #f8d7da; border: 1px solid #dc3545; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                        <strong>❌ Erreurs:</strong> ${errorCount} ligne(s) avec des erreurs
+                        <details style="margin-top: 10px;">
+                            <summary style="cursor: pointer; font-weight: bold;">Voir les erreurs détaillées</summary>
+                            <ul style="margin-top: 10px; padding-left: 20px;">
+                                ${errorMessages.map(msg => `<li>${msg}</li>`).join('')}
+                            </ul>
+                        </details>
+                    </div>
+                `;
+            }
+
+            resultsHTML += '</div>';
+            resultsDiv.innerHTML = resultsHTML;
+            resultsDiv.style.display = 'block';
+
+            if (successCount > 0) {
+                showSuccess(`Import terminé: ${successCount} article(s) importé(s)`);
+            } else if (errorCount > 0 || skipCount > 0) {
+                showToast('Attention', 'Import terminé avec des avertissements', 'warning');
+            }
+
+        } catch (error) {
+            console.error('Erreur lors de l\'import CSV:', error);
+            showError('Erreur lors de l\'import du fichier CSV: ' + error.message);
+        }
+    };
+
+    reader.onerror = function() {
+        showError('Erreur lors de la lecture du fichier');
+    };
+
+    reader.readAsText(file, 'UTF-8');
 }
 
 // Notification System
