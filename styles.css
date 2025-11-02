@@ -1256,6 +1256,12 @@ header p {
 }
 
 /* List View */
+.items-section.items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .items-list .item-card {
     display: grid;
     grid-template-columns: auto 1fr auto auto;
