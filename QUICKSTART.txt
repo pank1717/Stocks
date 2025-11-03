@@ -1,0 +1,146 @@
+╔═══════════════════════════════════════════════════════════════╗
+║     GUIDE RAPIDE - Installation Gestion de Stock IT          ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📋 ÉTAPES D'INSTALLATION SUR UN NOUVEAU PC
+═══════════════════════════════════════════════════════════════
+
+1️⃣  INSTALLER NODE.JS
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Windows/Mac : https://nodejs.org/ (version LTS)
+   Linux       : sudo apt install nodejs npm
+
+   Vérifier : node --version && npm --version
+
+
+2️⃣  RÉCUPÉRER L'APPLICATION
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Option A - Avec Git :
+   git clone https://github.com/pank1717/Stocks.git
+   cd Stocks
+
+   Option B - Sans Git :
+   - Télécharger le ZIP depuis GitHub
+   - Extraire dans un dossier
+   - Ouvrir un terminal dans ce dossier
+
+
+3️⃣  INSTALLER LES DÉPENDANCES
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   npm install
+
+
+4️⃣  LANCER L'APPLICATION
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   node server.js
+
+   L'application sera accessible sur : http://localhost:3000
+
+
+5️⃣  SE CONNECTER
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   👤 Utilisateur : admin
+   🔐 Mot de passe : admin
+
+   ⚠️  IMPORTANT : Changez ce mot de passe immédiatement !
+       Menu : "👤 Mon Profil" → Changer le mot de passe
+
+
+═══════════════════════════════════════════════════════════════
+💾 RESTAURER UNE SAUVEGARDE (si vous en avez une)
+═══════════════════════════════════════════════════════════════
+
+1. Se connecter en admin
+2. Cliquer sur "💾 Sauvegarde" (en haut à gauche)
+3. "📤 Choisir un fichier de sauvegarde"
+4. Sélectionner votre fichier .json
+5. Confirmer la restauration
+
+
+═══════════════════════════════════════════════════════════════
+🌐 ACCÈS RÉSEAU (optionnel - pour accès multi-postes)
+═══════════════════════════════════════════════════════════════
+
+1. Trouver l'adresse IP du PC serveur :
+   Windows : ipconfig
+   Linux   : ip addr show
+
+2. Autoriser le port dans le pare-feu :
+   Windows :
+   netsh advfirewall firewall add rule name="Stock" dir=in action=allow protocol=TCP localport=3000
+
+   Linux :
+   sudo ufw allow 3000/tcp
+
+3. Accéder depuis un autre PC :
+   http://[IP_DU_SERVEUR]:3000
+   Exemple : http://192.168.1.100:3000
+
+
+═══════════════════════════════════════════════════════════════
+🔧 DÉMARRAGE AUTOMATIQUE (optionnel - avec PM2)
+═══════════════════════════════════════════════════════════════
+
+1. Installer PM2 :
+   npm install -g pm2
+
+2. Démarrer l'app avec PM2 :
+   pm2 start server.js --name "stock-management"
+   pm2 save
+   pm2 startup
+
+3. Commandes utiles :
+   pm2 list                    # Voir les apps
+   pm2 stop stock-management   # Arrêter
+   pm2 restart stock-management # Redémarrer
+   pm2 logs stock-management   # Voir les logs
+
+
+═══════════════════════════════════════════════════════════════
+❓ PROBLÈMES COURANTS
+═══════════════════════════════════════════════════════════════
+
+🔴 "Port 3000 déjà utilisé"
+   Windows : taskkill /F /IM node.exe
+   Linux   : killall node
+
+🔴 "Cannot find module"
+   rm -rf node_modules
+   npm install
+
+🔴 L'interface ne se charge pas
+   - Vérifier que le serveur tourne
+   - Vider le cache du navigateur (Ctrl+Shift+Del)
+   - Essayer en navigation privée
+
+
+═══════════════════════════════════════════════════════════════
+📚 DOCUMENTATION COMPLÈTE
+═══════════════════════════════════════════════════════════════
+
+Pour plus de détails, consultez :
+• INSTALLATION.md - Guide d'installation complet
+• README.md       - Documentation générale
+
+
+═══════════════════════════════════════════════════════════════
+✅ CHECKLIST POST-INSTALLATION
+═══════════════════════════════════════════════════════════════
+
+□ Node.js installé
+□ Dépendances installées (npm install)
+□ Application lancée (node server.js)
+□ Connexion réussie (admin/admin)
+□ Mot de passe admin changé
+□ (Optionnel) Sauvegarde restaurée
+□ (Optionnel) Utilisateurs créés
+□ (Optionnel) Permissions configurées
+
+
+═══════════════════════════════════════════════════════════════
+
+🎉 C'est prêt ! Bonne gestion d'inventaire !
+
+Pour toute question : Consultez INSTALLATION.md ou GitHub Issues
+
+═══════════════════════════════════════════════════════════════
