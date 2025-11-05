@@ -70,6 +70,18 @@ if (users.length === 0) {
     localStorage.setItem('users', JSON.stringify(users));
 }
 
+// Auto-login as admin if no current user (for demo/development)
+if (!currentUser) {
+    currentUser = {
+        id: '1',
+        username: 'admin',
+        role: 'admin',
+        email: 'admin@example.com'
+    };
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    localStorage.setItem('isAuthenticated', 'true');
+}
+
 // Role permissions configuration
 const PERMISSIONS = {
     admin: {
