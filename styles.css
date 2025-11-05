@@ -438,6 +438,38 @@ header p {
     margin-top: 20px;
 }
 
+/* Settings Tabs */
+.settings-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.settings-tab:hover {
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.settings-tab.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.settings-tab-content {
+    display: none;
+}
+
+.settings-tab-content:first-of-type {
+    display: block;
+}
+
 /* Form Styles */
 .form-row {
     display: grid;

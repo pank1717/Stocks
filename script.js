@@ -312,6 +312,9 @@ function updateUserInterface() {
 
     const backupBtn = document.getElementById('backup-btn');
     if (backupBtn) backupBtn.style.display = hasPermission('canManageUsers') ? 'inline-block' : 'none';
+
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) settingsBtn.style.display = hasPermission('canManageUsers') ? 'inline-block' : 'none';
 }
 
 // Location Management
@@ -1251,6 +1254,206 @@ function restoreBackup(backupData) {
     } catch (error) {
         console.error('Error restoring backup:', error);
         showToast('Erreur', 'Erreur lors de la restauration: ' + error.message, 'error');
+    }
+}
+
+// ===== Settings Modal Functions =====
+function showSettingsModal() {
+    document.getElementById('settings-modal').classList.add('show');
+    loadEmailSettings();
+}
+
+function closeSettingsModal() {
+    document.getElementById('settings-modal').classList.remove('show');
+}
+
+function switchSettingsTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.settings-tab-content').forEach(tab => {
+        tab.style.display = 'none';
+    });
+
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.settings-tab').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // Show selected tab
+    document.getElementById(`settings-${tabName}-tab`).style.display = 'block';
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+}
+
+function toggleEmailFields() {
+    const enabled = document.getElementById('email-enabled').checked;
+    const fields = document.getElementById('email-fields');
+    fields.style.display = enabled ? 'block' : 'none';
+}
+
+function loadEmailSettings() {
+    // Try to load from .env or localStorage
+    // For now, we'll leave fields empty - user will configure them
+    const enabled = localStorage.getItem('email-enabled') === 'true';
+    document.getElementById('email-enabled').checked = enabled;
+    toggleEmailFields();
+
+    if (enabled) {
+        document.getElementById('smtp-host').value = localStorage.getItem('smtp-host') || '';
+        document.getElementById('smtp-port').value = localStorage.getItem('smtp-port') || '587';
+        document.getElementById('smtp-secure').checked = localStorage.getItem('smtp-secure') === 'true';
+        document.getElementById('smtp-user').value = localStorage.getItem('smtp-user') || '';
+        document.getElementById('smtp-from').value = localStorage.getItem('smtp-from') || '';
+        document.getElementById('alert-emails').value = localStorage.getItem('alert-emails') || '';
+        // Note: we don't load password for security reasons
+    }
+}
+
+async function saveEmailSettings(event) {
+    event.preventDefault();
+
+    const enabled = document.getElementById('email-enabled').checked;
+
+    if (!enabled) {
+        // Just disable emails
+        const config = { enabled: false };
+
+        try {
+            const response = await fetch(`${API_URL}/api/settings/email`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+
+            if (!response.ok) throw new Error('Failed to save settings');
+
+            localStorage.setItem('email-enabled', 'false');
+            showToast('Succès', 'Notifications par email désactivées', 'success');
+            closeSettingsModal();
+        } catch (error) {
+            console.error('Error saving email settings:', error);
+            showToast('Erreur', 'Erreur lors de l\'enregistrement: ' + error.message, 'error');
+        }
+        return;
+    }
+
+    // Collect settings
+    const config = {
+        enabled: true,
+        host: document.getElementById('smtp-host').value.trim(),
+        port: parseInt(document.getElementById('smtp-port').value),
+        secure: document.getElementById('smtp-secure').checked,
+        user: document.getElementById('smtp-user').value.trim(),
+        pass: document.getElementById('smtp-pass').value,
+        from: document.getElementById('smtp-from').value.trim(),
+        alertEmails: document.getElementById('alert-emails').value.split(',').map(e => e.trim()).filter(e => e)
+    };
+
+    // Validate required fields
+    if (!config.host || !config.user || !config.pass || !config.from || config.alertEmails.length === 0) {
+        showToast('Erreur', 'Veuillez remplir tous les champs obligatoires', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/api/settings/email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+
+        if (!response.ok) throw new Error('Failed to save settings');
+        const result = await response.json();
+
+        // Save to localStorage (except password)
+        localStorage.setItem('email-enabled', 'true');
+        localStorage.setItem('smtp-host', config.host);
+        localStorage.setItem('smtp-port', config.port.toString());
+        localStorage.setItem('smtp-secure', config.secure.toString());
+        localStorage.setItem('smtp-user', config.user);
+        localStorage.setItem('smtp-from', config.from);
+        localStorage.setItem('alert-emails', config.alertEmails.join(', '));
+
+        showToast('Succès', 'Configuration email enregistrée avec succès', 'success');
+        closeSettingsModal();
+
+    } catch (error) {
+        console.error('Error saving email settings:', error);
+        showToast('Erreur', 'Erreur lors de l\'enregistrement: ' + error.message, 'error');
+    }
+}
+
+async function testEmailConnection() {
+    const testEmail = document.getElementById('smtp-user').value.trim();
+
+    if (!testEmail) {
+        showToast('Erreur', 'Veuillez saisir un email SMTP', 'error');
+        return;
+    }
+
+    // First save settings
+    const config = {
+        enabled: true,
+        host: document.getElementById('smtp-host').value.trim(),
+        port: parseInt(document.getElementById('smtp-port').value),
+        secure: document.getElementById('smtp-secure').checked,
+        user: document.getElementById('smtp-user').value.trim(),
+        pass: document.getElementById('smtp-pass').value,
+        from: document.getElementById('smtp-from').value.trim(),
+        alertEmails: document.getElementById('alert-emails').value.split(',').map(e => e.trim()).filter(e => e)
+    };
+
+    try {
+        // Configure first
+        await fetch(`${API_URL}/api/settings/email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+
+        // Then test
+        const response = await fetch(`${API_URL}/api/email/test`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ toEmail: testEmail })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Test failed');
+        }
+
+        showToast('Succès', `Email de test envoyé à ${testEmail}`, 'success');
+
+    } catch (error) {
+        console.error('Error testing email:', error);
+        showToast('Erreur', 'Échec du test: ' + error.message, 'error');
+    }
+}
+
+async function sendLowStockAlert() {
+    try {
+        const response = await fetch(`${API_URL}/api/email/send-alert`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to send alert');
+        }
+
+        const result = await response.json();
+
+        if (result.sent) {
+            showToast('Succès', `Alerte envoyée pour ${result.itemsCount} article(s)`, 'success');
+        } else if (result.message) {
+            showToast('Info', result.message, 'info');
+        } else {
+            showToast('Info', 'Service email non configuré ou désactivé', 'info');
+        }
+
+    } catch (error) {
+        console.error('Error sending alert:', error);
+        showToast('Erreur', 'Erreur lors de l\'envoi: ' + error.message, 'error');
     }
 }
 

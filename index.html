@@ -17,6 +17,7 @@
                 <button class="btn btn-small btn-secondary" onclick="showUserManagementModal()" id="user-management-btn" style="font-size: 0.85rem;">⚙️ Utilisateurs</button>
                 <button class="btn btn-small btn-secondary" onclick="showAuditLogModal()" id="audit-log-btn" style="font-size: 0.85rem; display: none;">📋 Audit</button>
                 <button class="btn btn-small btn-secondary" onclick="showBackupModal()" id="backup-btn" style="font-size: 0.85rem; display: none;">💾 Sauvegarde</button>
+                <button class="btn btn-small btn-secondary" onclick="showSettingsModal()" id="settings-btn" style="font-size: 0.85rem; display: none;">⚙️ Paramètres</button>
                 <button class="btn btn-small btn-secondary" onclick="logout()" style="font-size: 0.85rem;">🚪 Déconnexion</button>
             </div>
             <div style="position: relative;">
@@ -902,6 +903,124 @@
 
                 <div style="margin-top: 20px; text-align: center;">
                     <button class="btn btn-secondary" onclick="closeBackupModal()">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>⚙️ Paramètres Administrateur</h2>
+                <span class="close" onclick="closeSettingsModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <!-- Settings Tabs -->
+                <div style="border-bottom: 2px solid #e0e0e0; margin-bottom: 20px;">
+                    <button class="settings-tab active" onclick="switchSettingsTab('email')" id="tab-email">
+                        📧 Notifications Email
+                    </button>
+                    <button class="settings-tab" onclick="switchSettingsTab('general')" id="tab-general">
+                        ⚙️ Général
+                    </button>
+                </div>
+
+                <!-- Email Settings Tab -->
+                <div id="settings-email-tab" class="settings-tab-content">
+                    <div style="background: #e7f3ff; border: 1px solid #2196f3; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong>ℹ️ Configuration SMTP:</strong>
+                        <p style="margin: 10px 0 0 0;">Configurez un serveur SMTP pour recevoir des alertes automatiques par email lorsque le stock est faible.</p>
+                    </div>
+
+                    <form id="email-settings-form" onsubmit="saveEmailSettings(event)">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="email-enabled" onchange="toggleEmailFields()">
+                                <strong>Activer les notifications par email</strong>
+                            </label>
+                        </div>
+
+                        <div id="email-fields" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="smtp-host">Serveur SMTP * (ex: smtp.gmail.com)</label>
+                                    <input type="text" id="smtp-host" placeholder="smtp.gmail.com">
+                                </div>
+                                <div class="form-group">
+                                    <label for="smtp-port">Port SMTP *</label>
+                                    <input type="number" id="smtp-port" value="587" min="1" max="65535">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="smtp-secure">
+                                    Connexion sécurisée (SSL/TLS)
+                                </label>
+                                <small style="color: #666; display: block; margin-top: 4px;">
+                                    Activez pour port 465, désactivez pour port 587 (STARTTLS)
+                                </small>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="smtp-user">Utilisateur SMTP * (email complet)</label>
+                                    <input type="email" id="smtp-user" placeholder="votre-email@gmail.com">
+                                </div>
+                                <div class="form-group">
+                                    <label for="smtp-pass">Mot de passe SMTP *</label>
+                                    <input type="password" id="smtp-pass" placeholder="Mot de passe ou App Password">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="smtp-from">Email expéditeur *</label>
+                                <input type="email" id="smtp-from" placeholder="stock@example.com">
+                                <small style="color: #666; display: block; margin-top: 4px;">
+                                    Email qui apparaîtra comme expéditeur des alertes
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="alert-emails">Emails destinataires des alertes *</label>
+                                <input type="text" id="alert-emails" placeholder="admin@example.com, manager@example.com">
+                                <small style="color: #666; display: block; margin-top: 4px;">
+                                    Séparez plusieurs emails par des virgules
+                                </small>
+                            </div>
+
+                            <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                                <strong>📝 Gmail / Google Workspace:</strong>
+                                <ul style="margin: 10px 0 5px 0; padding-left: 20px; font-size: 0.9rem;">
+                                    <li>Serveur: smtp.gmail.com, Port: 587</li>
+                                    <li>Utilisez un "App Password" (pas votre mot de passe Gmail)</li>
+                                    <li><a href="https://support.google.com/accounts/answer/185833" target="_blank">Comment créer un App Password</a></li>
+                                </ul>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-info" onclick="testEmailConnection()">
+                                    ✉️ Tester la connexion
+                                </button>
+                                <button type="button" class="btn btn-warning" onclick="sendLowStockAlert()">
+                                    📨 Envoyer alerte stock faible
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="modal-actions" style="margin-top: 30px;">
+                            <button type="button" class="btn btn-secondary" onclick="closeSettingsModal()">Annuler</button>
+                            <button type="submit" class="btn btn-primary">💾 Enregistrer les paramètres</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- General Settings Tab (placeholder for future) -->
+                <div id="settings-general-tab" class="settings-tab-content" style="display: none;">
+                    <div style="padding: 40px; text-align: center; color: #666;">
+                        <p>⚙️ Paramètres généraux - À venir prochainement</p>
+                    </div>
                 </div>
             </div>
         </div>
