@@ -2,6 +2,7 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const cors = require('cors');
+const emailService = require('./email-service');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -400,6 +401,63 @@ app.get('/api/alerts', (req, res) => {
                 return;
             }
             res.json(rows);
+        }
+    );
+});
+
+// =======================
+// EMAIL & NOTIFICATIONS
+// =======================
+
+// Configure email service
+app.post('/api/settings/email', (req, res) => {
+    const { enabled, host, port, secure, user, pass, from, alertEmails } = req.body;
+
+    const config = {
+        enabled: enabled || false,
+        host: host || '',
+        port: parseInt(port) || 587,
+        secure: secure || false,
+        auth: {
+            user: user || '',
+            pass: pass || ''
+        },
+        from: from || 'stock@example.com',
+        alertEmails: Array.isArray(alertEmails) ? alertEmails : []
+    };
+
+    emailService.configure(config);
+    res.json({ message: 'Configuration email mise à jour', config: { ...config, auth: { user: config.auth.user, pass: '***' } } });
+});
+
+// Test email configuration
+app.post('/api/email/test', async (req, res) => {
+    const { toEmail } = req.body;
+
+    try {
+        const result = await emailService.sendTestEmail(toEmail || 'test@example.com');
+        res.json({ success: true, message: 'Email de test envoyé', result });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Send low stock alert manually
+app.post('/api/email/send-alert', (req, res) => {
+    db.all(
+        'SELECT * FROM items WHERE quantity > 0 AND quantity <= alert_threshold ORDER BY quantity ASC',
+        [],
+        async (err, items) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+
+            if (items.length === 0) {
+                return res.json({ sent: false, message: 'Aucun article en alerte de stock faible' });
+            }
+
+            const result = await emailService.sendLowStockAlert(items);
+            res.json({ ...result, itemsCount: items.length });
         }
     );
 });
