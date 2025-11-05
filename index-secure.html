@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion de Stock - IT Assets</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js" integrity="sha512-a+SUDuwNzXDvz4XrIcXHuCf089/iJAoN4lmrXJg18XnduKK6YlDHNRalv4yd1N40OKI80tFidF+rqTFKGPoWFQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div style="position: absolute; top: 10px; left: 20px; display: flex; align-items: center; gap: 15px;">
+                <div id="user-info" style="color: white; font-size: 0.9rem;"></div>
+                <button class="btn btn-small btn-secondary" onclick="showProfileModal()" style="font-size: 0.85rem;">👤 Mon Profil</button>
+                <button class="btn btn-small btn-secondary" onclick="showUserManagementModal()" id="user-management-btn" style="font-size: 0.85rem;">⚙️ Utilisateurs</button>
+                <button class="btn btn-small btn-secondary" onclick="showAuditLogModal()" id="audit-log-btn" style="font-size: 0.85rem; display: none;">📋 Audit</button>
+                <button class="btn btn-small btn-secondary" onclick="showBackupModal()" id="backup-btn" style="font-size: 0.85rem; display: none;">💾 Sauvegarde</button>
+                <button class="btn btn-small btn-secondary" onclick="logout()" style="font-size: 0.85rem;">🚪 Déconnexion</button>
+            </div>
+            <div style="position: relative;">
+                <button class="notification-bell" onclick="toggleNotificationCenter()" id="notification-bell">
+                    🔔
+                    <span class="notification-badge" id="notification-badge" style="display: none;">0</span>
+                </button>
+            </div>
+            <h1>📦 Gestion de Stock IT</h1>
+            <p>Gérez vos actifs informatiques en toute simplicité</p>
+            <div class="keyboard-shortcuts-info">
+                ⌨️ Raccourcis: <kbd>Ctrl+N</kbd> Nouveau | <kbd>Ctrl+K</kbd> Rechercher | <kbd>Ctrl+L</kbd> Vue | <kbd>Ctrl+D</kbd> Thème | <kbd>Ctrl+W</kbd> Prêts
+            </div>
+        </header>
+
+        <!-- Notification Center -->
+        <div id="notification-center" class="notification-center" style="display: none;">
+            <div class="notification-center-header">
+                <h3>🔔 Centre de notifications</h3>
+                <button class="btn btn-small btn-secondary" onclick="clearAllNotifications()">Tout effacer</button>
+            </div>
+            <div id="notification-list" class="notification-list">
+                <!-- Notifications will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div id="toast-container" class="toast-container"></div>
+
+        <!-- Emergency Admin Access (hidden) -->
+        <div style="position: fixed; bottom: 10px; right: 10px; opacity: 0.3; font-size: 0.7rem;">
+            <button onclick="emergencyAdminAccess()" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: rgba(255,255,255,0.5); padding: 3px 8px; border-radius: 4px; cursor: pointer;" title="Accès admin d'urgence (Ctrl+Shift+A)">🔓</button>
+        </div>
+
+        <!-- Statistics Dashboard -->
+        <section class="stats-section">
+            <div class="stat-card" data-filter="all" onclick="filterByStatus('all')">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-items">0</div>
+                    <div class="stat-label">Articles différents</div>
+                </div>
+            </div>
+            <div class="stat-card" data-filter="in-stock" onclick="filterByStatus('in-stock')">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-in-stock">0</div>
+                    <div class="stat-label">En stock</div>
+                </div>
+            </div>
+            <div class="stat-card" data-filter="out-stock" onclick="filterByStatus('out-stock')">
+                <div class="stat-icon">❌</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-out-stock">0</div>
+                    <div class="stat-label">Épuisés</div>
+                </div>
+            </div>
+            <div class="stat-card stat-card-warning" data-filter="low-stock" onclick="filterByStatus('low-stock')">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-low-stock">0</div>
+                    <div class="stat-label">Stock faible</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-units">0</div>
+                    <div class="stat-label">Unités totales</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-value">0 CHF</div>
+                    <div class="stat-label">Valeur totale</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Alerts Section -->
+        <section class="alerts-section" id="alerts-section" style="display: none;">
+            <div class="alerts-header">
+                <h3>⚠️ Alertes de Stock Faible</h3>
+                <button class="btn btn-secondary btn-small" onclick="closeAlerts()">Masquer</button>
+            </div>
+            <div class="alerts-content" id="alerts-content">
+                <!-- Alerts will be dynamically inserted here -->
+            </div>
+        </section>
+
+        <!-- Category Statistics -->
+        <section class="category-stats-section" id="category-stats-section">
+            <div class="category-stats-header">
+                <h3>📊 Statistiques par Catégorie</h3>
+            </div>
+            <div class="category-stats-grid" id="category-stats-content">
+                <!-- Stats will be dynamically inserted here -->
+            </div>
+        </section>
+
+        <!-- Action Buttons -->
+        <section class="action-section">
+            <button class="btn btn-primary" onclick="showAddItemModal()">➕ Ajouter un Article</button>
+            <button class="btn btn-info" onclick="showLoansModal()">👤 Qui a quoi ?</button>
+            <button class="btn btn-success" onclick="exportToCSV()">📊 Exporter CSV</button>
+            <button class="btn btn-success" onclick="printInventoryReport()" id="print-report-btn">📄 Imprimer rapport</button>
+            <button class="btn btn-primary" onclick="showImportCSVModal()" id="import-csv-btn">📥 Importer CSV</button>
+            <button class="btn btn-warning" onclick="showLabelPrintModal()">🏷️ Imprimer étiquettes</button>
+            <button class="btn btn-info" onclick="showSuppliersModal()">🏢 Fournisseurs</button>
+            <button class="btn btn-warning" onclick="showMaintenanceModal()" id="maintenance-btn">🔧 Maintenances</button>
+            <button class="btn btn-info" onclick="showStatsModal()">📊 Statistiques</button>
+            <button class="btn btn-secondary" onclick="toggleTheme()" id="theme-toggle">🌙 Mode sombre</button>
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="🔍 Rechercher (nom, modèle, catégorie, n° série, emplacement...)" oninput="filterItems()">
+                <button class="btn btn-info btn-small" onclick="showAdvancedSearchModal()" title="Recherche avancée" style="margin-left: 5px;">🔍+</button>
+            </div>
+            <select id="category-filter" onchange="filterItems()">
+                <option value="">Toutes les catégories</option>
+                <option value="informatique">🖥️ Informatique</option>
+                <option value="peripheriques">🖱️ Périphériques</option>
+                <option value="ecrans">📺 Écrans</option>
+                <option value="connectique">🔌 Connectique</option>
+                <option value="alimentation">🔋 Alimentation</option>
+                <option value="docking">🔗 Docking & Hubs</option>
+                <option value="audio">🎧 Audio</option>
+                <option value="reseau">📡 Réseau</option>
+                <option value="stockage">💾 Stockage</option>
+                <option value="mobile">📱 Mobile</option>
+            </select>
+            <select id="sort-select" onchange="filterItems()">
+                <option value="name-asc">📝 Nom (A-Z)</option>
+                <option value="name-desc">📝 Nom (Z-A)</option>
+                <option value="quantity-desc">📊 Stock (↑ élevé)</option>
+                <option value="quantity-asc">📊 Stock (↓ faible)</option>
+                <option value="price-desc">💰 Prix (↑ élevé)</option>
+                <option value="price-asc">💰 Prix (↓ faible)</option>
+                <option value="recent">🕒 Récent</option>
+                <option value="oldest">🕒 Ancien</option>
+                <option value="category">📁 Catégorie</option>
+            </select>
+            <div class="view-toggle">
+                <button class="btn btn-view active" id="view-grid" onclick="setView('grid')" title="Vue grille">⊞</button>
+                <button class="btn btn-view" id="view-list" onclick="setView('list')" title="Vue liste">☰</button>
+            </div>
+        </section>
+
+        <!-- Items Grid -->
+        <section class="items-section" id="items-container">
+            <!-- Items will be dynamically inserted here -->
+        </section>
+
+        <!-- Add Item Modal -->
+        <div id="add-item-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Ajouter un Article</h2>
+                    <span class="close" onclick="closeAddItemModal()">&times;</span>
+                </div>
+                <form id="add-item-form" onsubmit="addItem(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-name">Nom de l'article *</label>
+                            <input type="text" id="item-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="item-model">Modèle / Spécifications</label>
+                            <input type="text" id="item-model">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-quantity">Quantité initiale *</label>
+                            <input type="number" id="item-quantity" value="0" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="item-alert-threshold">Seuil d'alerte *</label>
+                            <input type="number" id="item-alert-threshold" value="5" min="0" required title="Vous serez alerté quand le stock atteint ou descend en-dessous de ce seuil">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-category">Catégorie *</label>
+                            <select id="item-category" required>
+                                <option value="informatique">🖥️ Informatique</option>
+                                <option value="peripheriques">🖱️ Périphériques</option>
+                                <option value="ecrans">📺 Écrans</option>
+                                <option value="connectique">🔌 Connectique</option>
+                                <option value="alimentation">🔋 Alimentation</option>
+                                <option value="docking">🔗 Docking & Hubs</option>
+                                <option value="audio">🎧 Audio</option>
+                                <option value="reseau">📡 Réseau</option>
+                                <option value="stockage">💾 Stockage</option>
+                                <option value="mobile">📱 Mobile</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-serial">N° de série</label>
+                            <input type="text" id="item-serial">
+                        </div>
+                        <div class="form-group">
+                            <label for="item-location">Emplacement physique</label>
+                            <select id="item-location-select" onchange="handleLocationChange('item')">
+                                <option value="">-- Sélectionner un emplacement --</option>
+                                <option value="Bureau IT - Armoire A">Bureau IT - Armoire A</option>
+                                <option value="Bureau IT - Armoire B">Bureau IT - Armoire B</option>
+                                <option value="Bureau IT - Armoire C">Bureau IT - Armoire C</option>
+                                <option value="Salle serveur">Salle serveur</option>
+                                <option value="Réception">Réception</option>
+                                <option value="Salle de réunion 1">Salle de réunion 1</option>
+                                <option value="Salle de réunion 2">Salle de réunion 2</option>
+                                <option value="Atelier technique">Atelier technique</option>
+                                <option value="Entrepôt">Entrepôt</option>
+                                <option value="Stock sécurisé">Stock sécurisé</option>
+                                <option value="__other__">✏️ Autre (préciser)</option>
+                            </select>
+                            <input type="text" id="item-location" placeholder="Préciser l'emplacement..." style="display: none; margin-top: 8px;">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-supplier">Fournisseur</label>
+                            <select id="item-supplier-select" onchange="handleSupplierChange('item')">
+                                <option value="">-- Sélectionner un fournisseur --</option>
+                                <!-- Suppliers will be dynamically added -->
+                                <option value="__other__">✏️ Autre (saisir manuellement)</option>
+                            </select>
+                            <input type="text" id="item-supplier" placeholder="Nom du fournisseur..." style="display: none; margin-top: 8px;">
+                        </div>
+                        <div class="form-group">
+                            <label for="item-purchase-date">Date d'achat</label>
+                            <input type="date" id="item-purchase-date">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-price">Prix unitaire (CHF)</label>
+                            <input type="number" id="item-price" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="item-photo">Emoji Photo</label>
+                            <select id="item-photo">
+                                <option value="">-- Choisir un emoji --</option>
+                                <option value="💻">💻 Ordinateur</option>
+                                <option value="🖥️">🖥️ PC de bureau</option>
+                                <option value="⌨️">⌨️ Clavier</option>
+                                <option value="🖱️">🖱️ Souris</option>
+                                <option value="🖨️">🖨️ Imprimante</option>
+                                <option value="📱">📱 Smartphone</option>
+                                <option value="📲">📲 Téléphone</option>
+                                <option value="💾">💾 Disque dur</option>
+                                <option value="💿">💿 CD/DVD</option>
+                                <option value="📀">📀 Disque</option>
+                                <option value="📺">📺 Écran</option>
+                                <option value="🖼️">🖼️ Moniteur</option>
+                                <option value="📷">📷 Caméra</option>
+                                <option value="📹">📹 Caméscope</option>
+                                <option value="🎥">🎥 Vidéo</option>
+                                <option value="🎧">🎧 Casque audio</option>
+                                <option value="🎤">🎤 Microphone</option>
+                                <option value="🔌">🔌 Câble</option>
+                                <option value="🔋">🔋 Batterie</option>
+                                <option value="⚡">⚡ Alimentation</option>
+                                <option value="📡">📡 Antenne/Wifi</option>
+                                <option value="🔗">🔗 Hub/Docking</option>
+                                <option value="📦">📦 Carton</option>
+                                <option value="🗄️">🗄️ Stockage</option>
+                                <option value="🔧">🔧 Outil</option>
+                                <option value="🔨">🔨 Matériel</option>
+                                <option value="📊">📊 Accessoire</option>
+                                <option value="🎮">🎮 Manette</option>
+                                <option value="⚙️">⚙️ Pièce</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="item-notes">Notes / Commentaires</label>
+                        <textarea id="item-notes" rows="3"></textarea>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeAddItemModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Ajouter l'article</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Item Modal -->
+        <div id="edit-item-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Modifier l'Article</h2>
+                    <span class="close" onclick="closeEditItemModal()">&times;</span>
+                </div>
+                <form id="edit-item-form" onsubmit="updateItem(event)">
+                    <input type="hidden" id="edit-item-id">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-item-name">Nom de l'article *</label>
+                            <input type="text" id="edit-item-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-item-model">Modèle / Spécifications</label>
+                            <input type="text" id="edit-item-model">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-item-category">Catégorie *</label>
+                            <select id="edit-item-category" required>
+                                <option value="informatique">🖥️ Informatique</option>
+                                <option value="peripheriques">🖱️ Périphériques</option>
+                                <option value="ecrans">📺 Écrans</option>
+                                <option value="connectique">🔌 Connectique</option>
+                                <option value="alimentation">🔋 Alimentation</option>
+                                <option value="docking">🔗 Docking & Hubs</option>
+                                <option value="audio">🎧 Audio</option>
+                                <option value="reseau">📡 Réseau</option>
+                                <option value="stockage">💾 Stockage</option>
+                                <option value="mobile">📱 Mobile</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-item-alert-threshold">Seuil d'alerte *</label>
+                            <input type="number" id="edit-item-alert-threshold" min="0" required title="Vous serez alerté quand le stock atteint ou descend en-dessous de ce seuil">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-item-serial">N° de série</label>
+                            <input type="text" id="edit-item-serial">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-item-location">Emplacement physique</label>
+                            <select id="edit-item-location-select" onchange="handleLocationChange('edit-item')">
+                                <option value="">-- Sélectionner un emplacement --</option>
+                                <option value="Bureau IT - Armoire A">Bureau IT - Armoire A</option>
+                                <option value="Bureau IT - Armoire B">Bureau IT - Armoire B</option>
+                                <option value="Bureau IT - Armoire C">Bureau IT - Armoire C</option>
+                                <option value="Salle serveur">Salle serveur</option>
+                                <option value="Réception">Réception</option>
+                                <option value="Salle de réunion 1">Salle de réunion 1</option>
+                                <option value="Salle de réunion 2">Salle de réunion 2</option>
+                                <option value="Atelier technique">Atelier technique</option>
+                                <option value="Entrepôt">Entrepôt</option>
+                                <option value="Stock sécurisé">Stock sécurisé</option>
+                                <option value="__other__">✏️ Autre (préciser)</option>
+                            </select>
+                            <input type="text" id="edit-item-location" placeholder="Préciser l'emplacement..." style="display: none; margin-top: 8px;">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-item-supplier">Fournisseur</label>
+                            <select id="edit-item-supplier-select" onchange="handleSupplierChange('edit-item')">
+                                <option value="">-- Sélectionner un fournisseur --</option>
+                                <!-- Suppliers will be dynamically added -->
+                                <option value="__other__">✏️ Autre (saisir manuellement)</option>
+                            </select>
+                            <input type="text" id="edit-item-supplier" placeholder="Nom du fournisseur..." style="display: none; margin-top: 8px;">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-item-purchase-date">Date d'achat</label>
+                            <input type="date" id="edit-item-purchase-date">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-item-price">Prix unitaire (CHF)</label>
+                            <input type="number" id="edit-item-price" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-item-photo">Emoji Photo</label>
+                            <select id="edit-item-photo">
+                                <option value="">-- Choisir un emoji --</option>
+                                <option value="💻">💻 Ordinateur</option>
+                                <option value="🖥️">🖥️ PC de bureau</option>
+                                <option value="⌨️">⌨️ Clavier</option>
+                                <option value="🖱️">🖱️ Souris</option>
+                                <option value="🖨️">🖨️ Imprimante</option>
+                                <option value="📱">📱 Smartphone</option>
+                                <option value="📲">📲 Téléphone</option>
+                                <option value="💾">💾 Disque dur</option>
+                                <option value="💿">💿 CD/DVD</option>
+                                <option value="📀">📀 Disque</option>
+                                <option value="📺">📺 Écran</option>
+                                <option value="🖼️">🖼️ Moniteur</option>
+                                <option value="📷">📷 Caméra</option>
+                                <option value="📹">📹 Caméscope</option>
+                                <option value="🎥">🎥 Vidéo</option>
+                                <option value="🎧">🎧 Casque audio</option>
+                                <option value="🎤">🎤 Microphone</option>
+                                <option value="🔌">🔌 Câble</option>
+                                <option value="🔋">🔋 Batterie</option>
+                                <option value="⚡">⚡ Alimentation</option>
+                                <option value="📡">📡 Antenne/Wifi</option>
+                                <option value="🔗">🔗 Hub/Docking</option>
+                                <option value="📦">📦 Carton</option>
+                                <option value="🗄️">🗄️ Stockage</option>
+                                <option value="🔧">🔧 Outil</option>
+                                <option value="🔨">🔨 Matériel</option>
+                                <option value="📊">📊 Accessoire</option>
+                                <option value="🎮">🎮 Manette</option>
+                                <option value="⚙️">⚙️ Pièce</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-item-notes">Notes / Commentaires</label>
+                        <textarea id="edit-item-notes" rows="3"></textarea>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditItemModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Adjust Stock Modal -->
+        <div id="adjust-stock-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Ajuster le Stock</h2>
+                    <span class="close" onclick="closeAdjustStockModal()">&times;</span>
+                </div>
+                <div id="adjust-item-info" class="adjust-info"></div>
+                <form id="adjust-stock-form" onsubmit="adjustStock(event)">
+                    <input type="hidden" id="adjust-item-id">
+
+                    <div class="form-group" id="adjust-type-group">
+                        <label>Type d'ajustement</label>
+                        <div class="adjustment-buttons">
+                            <button type="button" class="btn btn-success" onclick="setAdjustmentType('add')">➕ Ajouter</button>
+                            <button type="button" class="btn btn-danger" onclick="setAdjustmentType('remove')">➖ Retirer</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="quick-type-info" style="display: none;">
+                        <label>Type d'ajustement</label>
+                        <div class="quick-type-display"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adjust-quantity">Quantité *</label>
+                        <input type="number" id="adjust-quantity" min="1" required>
+                    </div>
+
+                    <div class="form-group" id="adjust-person-group" style="display: none;">
+                        <label for="adjust-person">Personne (à qui l'article est donné) *</label>
+                        <input type="text" id="adjust-person" placeholder="Ex: Jean Dupont, Service Comptabilité">
+                    </div>
+
+                    <div class="form-group" id="adjust-return-date-group" style="display: none;">
+                        <label for="adjust-return-date">Date de retour prévue</label>
+                        <input type="date" id="adjust-return-date" min="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adjust-note">Note / Raison</label>
+                        <textarea id="adjust-note" rows="3" placeholder="Ex: Nouvelle commande reçue, Matériel prêté, etc."></textarea>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeAdjustStockModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Confirmer l'ajustement</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- History Modal -->
+        <div id="history-modal" class="modal">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h2>Historique des Mouvements</h2>
+                    <span class="close" onclick="closeHistoryModal()">&times;</span>
+                </div>
+                <div style="padding: 20px;">
+                    <div id="history-chart-container" style="margin-bottom: 30px; background: white; padding: 20px; border-radius: 8px;">
+                        <h3 style="margin-bottom: 15px; color: #333;">📈 Évolution du stock</h3>
+                        <canvas id="history-chart" style="max-height: 300px;"></canvas>
+                    </div>
+                    <div id="history-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loans Modal (Qui a quoi ?) -->
+        <div id="loans-modal" class="modal">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h2>👤 Qui a quoi ? - Suivi des prêts</h2>
+                    <span class="close" onclick="closeLoansModal()">&times;</span>
+                </div>
+                <div style="padding: 20px;">
+                    <div class="loans-search">
+                        <input type="text" id="loans-search-input" placeholder="🔍 Rechercher par nom de personne..." oninput="filterLoans()">
+                        <select id="loans-status-filter" onchange="filterLoans()">
+                            <option value="all">Tous les prêts</option>
+                            <option value="active">Prêts en cours</option>
+                            <option value="overdue">En retard</option>
+                        </select>
+                    </div>
+                    <div id="loans-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrcode-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Code QR de l'article</h2>
+                <span class="close" onclick="closeQRCodeModal()">&times;</span>
+            </div>
+            <div id="qrcode-content" style="padding: 20px; text-align: center;">
+                <div id="qrcode-item-info" style="margin-bottom: 20px;"></div>
+                <div id="qrcode-display" style="display: flex; justify-content: center;"></div>
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="printQRCode()">🖨️ Imprimer</button>
+                    <button class="btn btn-success" onclick="downloadQRCode()">💾 Télécharger</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Label Print Modal -->
+    <div id="label-print-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>🏷️ Imprimer des étiquettes</h2>
+                <span class="close" onclick="closeLabelPrintModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="selectAllLabels()">✓ Tout sélectionner</button>
+                    <button class="btn btn-secondary" onclick="deselectAllLabels()">✗ Tout désélectionner</button>
+                    <button class="btn btn-success" onclick="printSelectedLabels()" style="margin-left: 20px;">🖨️ Imprimer la sélection</button>
+                </div>
+                <div id="label-items-grid" class="label-items-grid">
+                    <!-- Items for label selection will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suppliers Modal -->
+    <div id="suppliers-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>🏢 Gestion des Fournisseurs</h2>
+                <span class="close" onclick="closeSuppliersModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="showAddSupplierModal()">➕ Nouveau fournisseur</button>
+                </div>
+                <div id="suppliers-list" class="suppliers-list">
+                    <!-- Suppliers will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Supplier Modal -->
+    <div id="supplier-form-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="supplier-form-title">Ajouter un Fournisseur</h2>
+                <span class="close" onclick="closeSupplierFormModal()">&times;</span>
+            </div>
+            <form id="supplier-form" onsubmit="saveSupplier(event)">
+                <input type="hidden" id="supplier-id">
+
+                <div class="form-group">
+                    <label for="supplier-name">Nom du fournisseur *</label>
+                    <input type="text" id="supplier-name" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="supplier-contact">Personne de contact</label>
+                        <input type="text" id="supplier-contact">
+                    </div>
+                    <div class="form-group">
+                        <label for="supplier-email">Email</label>
+                        <input type="email" id="supplier-email">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="supplier-phone">Téléphone</label>
+                        <input type="tel" id="supplier-phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="supplier-website">Site web</label>
+                        <input type="url" id="supplier-website">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="supplier-address">Adresse</label>
+                    <textarea id="supplier-address" rows="2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="supplier-notes">Notes</label>
+                    <textarea id="supplier-notes" rows="3"></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeSupplierFormModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Management Modal -->
+    <div id="user-management-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>⚙️ Gestion des Utilisateurs & Rôles</h2>
+                <span class="close" onclick="closeUserManagementModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div class="permissions-info" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="margin-top: 0;">Rôles et Permissions</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <strong style="color: #dc3545;">👑 Administrateur</strong>
+                            <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9rem;">
+                                <li>Accès complet</li>
+                                <li>Gestion utilisateurs</li>
+                                <li>Suppression articles</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong style="color: #ffc107;">👨‍💼 Gestionnaire</strong>
+                            <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9rem;">
+                                <li>Ajout/modification</li>
+                                <li>Ajustement stock</li>
+                                <li>Gestion fournisseurs</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong style="color: #17a2b8;">👁️ Lecteur</strong>
+                            <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9rem;">
+                                <li>Lecture seule</li>
+                                <li>Export données</li>
+                                <li>Consultation historique</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label><strong>Changer de rôle (démonstration):</strong></label>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="btn btn-danger" onclick="switchRole('admin')">👑 Admin</button>
+                        <button class="btn btn-warning" onclick="switchRole('manager')">👨‍💼 Manager</button>
+                        <button class="btn btn-info" onclick="switchRole('viewer')">👁️ Viewer</button>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 0.85rem; color: #666;">
+                        <em>Note: Dans un environnement de production, l'authentification serait gérée par Azure AD ou un système similaire.</em>
+                    </p>
+                </div>
+
+                <div id="users-list" style="margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0;">Utilisateurs enregistrés</h3>
+                        <button class="btn btn-primary" onclick="showAddUserModal()">➕ Ajouter un utilisateur</button>
+                    </div>
+                    <div id="users-table" class="users-table">
+                        <!-- Users will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit User Modal -->
+    <div id="user-form-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="user-form-title">Ajouter un Utilisateur</h2>
+                <span class="close" onclick="closeUserFormModal()">&times;</span>
+            </div>
+            <form id="user-form" onsubmit="saveUser(event)">
+                <input type="hidden" id="user-edit-id">
+
+                <div class="form-group">
+                    <label for="user-username">Nom d'utilisateur *</label>
+                    <input type="text" id="user-username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="user-email">Email *</label>
+                    <input type="email" id="user-email" required>
+                </div>
+
+                <div class="form-group" id="user-password-group">
+                    <label for="user-password">Mot de passe *</label>
+                    <input type="password" id="user-password" minlength="8" oninput="checkPasswordStrength()">
+                    <div id="password-strength" style="margin-top: 8px; display: none;">
+                        <div style="height: 4px; background: #e0e0e0; border-radius: 2px; overflow: hidden;">
+                            <div id="password-strength-bar" style="height: 100%; width: 0%; background: #ccc; transition: all 0.3s;"></div>
+                        </div>
+                        <small id="password-strength-text" style="color: #666; display: block; margin-top: 4px;"></small>
+                    </div>
+                    <small style="color: #666; display: block; margin-top: 4px;">
+                        <strong>Exigences:</strong> Min. 8 caractères, 1 majuscule, 1 minuscule, 1 chiffre
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="user-role">Rôle *</label>
+                    <select id="user-role" required>
+                        <option value="admin">👑 Administrateur (accès complet)</option>
+                        <option value="manager">👨‍💼 Gestionnaire (pas de suppression)</option>
+                        <option value="viewer">👁️ Lecteur (lecture seule)</option>
+                    </select>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeUserFormModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Profile Modal -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>👤 Mon Profil</h2>
+                <span class="close" onclick="closeProfileModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="margin-top: 0; margin-bottom: 10px;">Informations du compte</h3>
+                    <p><strong>Nom d'utilisateur:</strong> <span id="profile-username"></span></p>
+                    <p><strong>Email:</strong> <span id="profile-email"></span></p>
+                    <p><strong>Rôle:</strong> <span id="profile-role"></span></p>
+                </div>
+
+                <h3 style="margin-bottom: 15px;">🔐 Changer le mot de passe</h3>
+                <form id="change-password-form" onsubmit="changePassword(event)">
+                    <div class="form-group">
+                        <label for="current-password">Mot de passe actuel *</label>
+                        <input type="password" id="current-password" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new-password">Nouveau mot de passe *</label>
+                        <input type="password" id="new-password" minlength="8" required oninput="checkNewPasswordStrength()">
+                        <div id="new-password-strength" style="margin-top: 8px; display: none;">
+                            <div style="height: 4px; background: #e0e0e0; border-radius: 2px; overflow: hidden;">
+                                <div id="new-password-strength-bar" style="height: 100%; width: 0%; background: #ccc; transition: all 0.3s;"></div>
+                            </div>
+                            <small id="new-password-strength-text" style="color: #666; display: block; margin-top: 4px;"></small>
+                        </div>
+                        <small style="color: #666; display: block; margin-top: 4px;">
+                            <strong>Exigences:</strong> Min. 8 caractères, 1 majuscule, 1 minuscule, 1 chiffre
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm-password">Confirmer le nouveau mot de passe *</label>
+                        <input type="password" id="confirm-password" minlength="8" required>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Changer le mot de passe</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Log Viewer Modal -->
+    <div id="audit-log-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📋 Journal d'Audit</h2>
+                <span class="close" onclick="closeAuditLogModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <select id="audit-filter-action" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                        <option value="">Toutes les actions</option>
+                        <option value="login">Connexion</option>
+                        <option value="logout">Déconnexion</option>
+                        <option value="password_change">Changement mot de passe</option>
+                        <option value="create">Création</option>
+                        <option value="update">Modification</option>
+                        <option value="delete">Suppression</option>
+                        <option value="stock_adjustment">Ajustement stock</option>
+                        <option value="backup_export">Export sauvegarde</option>
+                        <option value="backup_restore_start">Restauration sauvegarde</option>
+                    </select>
+                    <select id="audit-filter-type" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                        <option value="">Tous les types</option>
+                        <option value="item">Article</option>
+                        <option value="user">Utilisateur</option>
+                        <option value="supplier">Fournisseur</option>
+                        <option value="auth">Authentification</option>
+                        <option value="system">Système</option>
+                    </select>
+                    <button class="btn btn-primary btn-small" onclick="filterAuditLogs()">🔍 Filtrer</button>
+                    <button class="btn btn-secondary btn-small" onclick="clearAuditFilters()">✖️ Réinitialiser</button>
+                    <button class="btn btn-primary btn-small" onclick="exportAuditLogsToCSV()" style="margin-left: auto;">📥 Télécharger CSV</button>
+                </div>
+
+                <div id="audit-logs-container" style="max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background: #f9f9f9;">
+                    <!-- Audit logs will be inserted here -->
+                </div>
+
+                <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <p style="color: #666; font-size: 0.9rem; margin: 0;">Les journaux d'audit conservent les 1000 dernières actions</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup/Restore Modal -->
+    <div id="backup-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>💾 Sauvegarde & Restauration</h2>
+                <span class="close" onclick="closeBackupModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong>⚠️ Important:</strong> Ces fonctionnalités permettent de sauvegarder et restaurer toutes les données de l'application (utilisateurs, articles, fournisseurs, logs, etc.).
+                </div>
+
+                <!-- Export/Backup Section -->
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="margin-top: 0;">📥 Exporter la sauvegarde complète</h3>
+                    <p style="color: #666; margin-bottom: 15px;">
+                        Télécharge un fichier JSON contenant toutes les données de l'application.
+                        Utilisez cette fonction régulièrement pour sauvegarder vos données.
+                    </p>
+                    <button class="btn btn-primary" onclick="exportBackup()">
+                        📥 Télécharger la sauvegarde (JSON)
+                    </button>
+                </div>
+
+                <!-- Import/Restore Section -->
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                    <h3 style="margin-top: 0;">📤 Restaurer depuis une sauvegarde</h3>
+                    <p style="color: #666; margin-bottom: 15px;">
+                        <strong>⚠️ Attention:</strong> Cette action remplacera <u>toutes</u> les données actuelles par celles du fichier de sauvegarde.
+                        Cette opération est <strong>irréversible</strong>.
+                    </p>
+                    <input type="file" id="restore-file-input" accept=".json" style="display: none;" onchange="handleRestoreFile(event)">
+                    <button class="btn btn-secondary" onclick="document.getElementById('restore-file-input').click()">
+                        📤 Choisir un fichier de sauvegarde
+                    </button>
+                </div>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn btn-secondary" onclick="closeBackupModal()">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Maintenance Management Modal -->
+    <div id="maintenance-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>🔧 Gestion des Maintenances & Réparations</h2>
+                <span class="close" onclick="closeMaintenanceModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div>
+                        <button class="btn btn-primary" onclick="showAddMaintenanceModal()">➕ Nouvelle maintenance</button>
+                    </div>
+                    <div>
+                        <select id="maintenance-filter" onchange="filterMaintenances()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                            <option value="all">Toutes</option>
+                            <option value="in-progress">En cours</option>
+                            <option value="completed">Terminées</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="maintenance-list" style="max-height: 500px; overflow-y: auto;">
+                    <!-- Maintenance records will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Maintenance Modal -->
+    <div id="add-maintenance-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Ajouter une Maintenance</h2>
+                <span class="close" onclick="closeAddMaintenanceModal()">&times;</span>
+            </div>
+            <form id="add-maintenance-form" onsubmit="addMaintenance(event)">
+                <div style="padding: 20px;">
+                    <div class="form-group">
+                        <label for="maint-item">Article *</label>
+                        <select id="maint-item" required>
+                            <option value="">-- Sélectionner un article --</option>
+                            <!-- Items will be populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="maint-type">Type *</label>
+                        <select id="maint-type" required>
+                            <option value="maintenance">Maintenance préventive</option>
+                            <option value="repair">Réparation</option>
+                            <option value="upgrade">Mise à niveau</option>
+                            <option value="cleaning">Nettoyage</option>
+                            <option value="calibration">Calibration</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="maint-start-date">Date de début *</label>
+                            <input type="date" id="maint-start-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="maint-end-date">Date de fin prévue</label>
+                            <input type="date" id="maint-end-date">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="maint-cost">Coût (CHF)</label>
+                            <input type="number" id="maint-cost" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="maint-technician">Technicien / Fournisseur</label>
+                            <input type="text" id="maint-technician" placeholder="Nom du technicien ou entreprise">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="maint-description">Description *</label>
+                        <textarea id="maint-description" rows="3" required placeholder="Décrire le problème ou la maintenance à effectuer"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="maint-notes">Notes</label>
+                        <textarea id="maint-notes" rows="2" placeholder="Notes additionnelles"></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddMaintenanceModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Advanced Search Modal -->
+    <div id="advanced-search-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔍 Recherche avancée</h2>
+                <span class="close" onclick="closeAdvancedSearchModal()">&times;</span>
+            </div>
+            <form id="advanced-search-form" onsubmit="applyAdvancedSearch(event)">
+                <div style="padding: 20px;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adv-name">Nom contient</label>
+                            <input type="text" id="adv-name" placeholder="Ex: Clavier">
+                        </div>
+                        <div class="form-group">
+                            <label for="adv-model">Modèle contient</label>
+                            <input type="text" id="adv-model" placeholder="Ex: K380">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adv-category">Catégorie</label>
+                            <select id="adv-category">
+                                <option value="">Toutes</option>
+                                <option value="informatique">🖥️ Informatique</option>
+                                <option value="peripheriques">🖱️ Périphériques</option>
+                                <option value="ecrans">📺 Écrans</option>
+                                <option value="connectique">🔌 Connectique</option>
+                                <option value="alimentation">🔋 Alimentation</option>
+                                <option value="docking">🔗 Docking & Hubs</option>
+                                <option value="audio">🎧 Audio</option>
+                                <option value="reseau">📡 Réseau</option>
+                                <option value="stockage">💾 Stockage</option>
+                                <option value="mobile">📱 Mobile</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="adv-stock-status">État du stock</label>
+                            <select id="adv-stock-status">
+                                <option value="">Tous</option>
+                                <option value="in-stock">En stock</option>
+                                <option value="low-stock">Stock faible</option>
+                                <option value="out-stock">Épuisé</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adv-quantity-min">Quantité min</label>
+                            <input type="number" id="adv-quantity-min" min="0" placeholder="Min">
+                        </div>
+                        <div class="form-group">
+                            <label for="adv-quantity-max">Quantité max</label>
+                            <input type="number" id="adv-quantity-max" min="0" placeholder="Max">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adv-price-min">Prix min (CHF)</label>
+                            <input type="number" id="adv-price-min" min="0" step="0.01" placeholder="Min">
+                        </div>
+                        <div class="form-group">
+                            <label for="adv-price-max">Prix max (CHF)</label>
+                            <input type="number" id="adv-price-max" min="0" step="0.01" placeholder="Max">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adv-location">Emplacement contient</label>
+                            <input type="text" id="adv-location" placeholder="Ex: Armoire A">
+                        </div>
+                        <div class="form-group">
+                            <label for="adv-supplier">Fournisseur contient</label>
+                            <input type="text" id="adv-supplier" placeholder="Ex: Dell">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adv-purchase-date-from">Date d'achat de</label>
+                            <input type="date" id="adv-purchase-date-from">
+                        </div>
+                        <div class="form-group">
+                            <label for="adv-purchase-date-to">Date d'achat à</label>
+                            <input type="date" id="adv-purchase-date-to">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adv-serial">Numéro de série contient</label>
+                        <input type="text" id="adv-serial" placeholder="Ex: SN-2024">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adv-notes">Notes contiennent</label>
+                        <input type="text" id="adv-notes" placeholder="Ex: Garantie">
+                    </div>
+
+                    <div style="background: #f0f0f0; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                        <strong>Résultats:</strong> <span id="adv-search-count">0 articles trouvés</span>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="resetAdvancedSearch()">Réinitialiser</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeAdvancedSearchModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Rechercher</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistics Dashboard Modal -->
+    <div id="stats-modal" class="modal">
+        <div class="modal-content modal-large" style="max-width: 1200px;">
+            <div class="modal-header">
+                <h2>📊 Tableau de bord - Statistiques avancées</h2>
+                <span class="close" onclick="closeStatsModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <!-- KPIs Summary -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Valeur totale du stock</div>
+                        <div id="kpi-total-value" style="font-size: 2rem; font-weight: bold; margin-top: 10px;">0 CHF</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Prix moyen par article</div>
+                        <div id="kpi-avg-price" style="font-size: 2rem; font-weight: bold; margin-top: 10px;">0 CHF</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Taux de rotation</div>
+                        <div id="kpi-rotation" style="font-size: 2rem; font-weight: bold; margin-top: 10px;">0%</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Articles actifs</div>
+                        <div id="kpi-active-items" style="font-size: 2rem; font-weight: bold; margin-top: 10px;">0</div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px;">
+                    <!-- Category Distribution -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3 style="margin-top: 0; color: #333;">📦 Répartition par catégorie</h3>
+                        <canvas id="category-chart" style="max-height: 300px;"></canvas>
+                    </div>
+
+                    <!-- Stock Status -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3 style="margin-top: 0; color: #333;">📊 État du stock</h3>
+                        <canvas id="stock-status-chart" style="max-height: 300px;"></canvas>
+                    </div>
+
+                    <!-- Value by Category -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3 style="margin-top: 0; color: #333;">💰 Valeur par catégorie</h3>
+                        <canvas id="value-chart" style="max-height: 300px;"></canvas>
+                    </div>
+
+                    <!-- Top Locations -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3 style="margin-top: 0; color: #333;">📍 Top emplacements</h3>
+                        <canvas id="location-chart" style="max-height: 300px;"></canvas>
+                    </div>
+
+                    <!-- Monthly Activity -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); grid-column: 1 / -1;">
+                        <h3 style="margin-top: 0; color: #333;">📈 Activité mensuelle (derniers 6 mois)</h3>
+                        <canvas id="activity-chart" style="max-height: 250px;"></canvas>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn btn-secondary" onclick="closeStatsModal()">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSV Import Modal -->
+    <div id="csv-import-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📥 Importer des Articles (CSV)</h2>
+                <span class="close" onclick="closeImportCSVModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div style="background: #e7f3ff; border: 1px solid #2196f3; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong>ℹ️ Format du fichier CSV:</strong>
+                    <p style="margin: 10px 0 5px 0;">Le fichier CSV doit contenir les colonnes suivantes (séparées par des virgules ou points-virgules):</p>
+                    <ul style="margin: 5px 0; padding-left: 20px;">
+                        <li><strong>name</strong> * - Nom de l'article (obligatoire)</li>
+                        <li><strong>model</strong> - Modèle / Spécifications</li>
+                        <li><strong>quantity</strong> * - Quantité initiale (obligatoire, nombre)</li>
+                        <li><strong>alert_threshold</strong> - Seuil d'alerte (nombre, défaut: 5)</li>
+                        <li><strong>category</strong> * - Catégorie (obligatoire: informatique, peripheriques, ecrans, connectique, alimentation, docking, audio, reseau, stockage, mobile)</li>
+                        <li><strong>serial</strong> - Numéro de série</li>
+                        <li><strong>location</strong> - Emplacement physique</li>
+                        <li><strong>supplier</strong> - Fournisseur</li>
+                        <li><strong>purchase_date</strong> - Date d'achat (format: YYYY-MM-DD)</li>
+                        <li><strong>price</strong> - Prix unitaire (nombre)</li>
+                        <li><strong>photo</strong> - Emoji photo (ex: 💻, 🖥️, ⌨️)</li>
+                        <li><strong>notes</strong> - Notes / Commentaires</li>
+                    </ul>
+                </div>
+
+                <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong>⚠️ Attention:</strong> Les articles avec des numéros de série existants seront ignorés pour éviter les doublons.
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-secondary" onclick="downloadCSVTemplate()">
+                        📄 Télécharger un modèle CSV
+                    </button>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="margin-top: 0;">Sélectionner un fichier CSV</h3>
+                    <input type="file" id="csv-file-input" accept=".csv" style="margin-bottom: 15px;">
+                    <div>
+                        <button class="btn btn-primary" onclick="processCSVImport()">
+                            🚀 Importer les articles
+                        </button>
+                    </div>
+                </div>
+
+                <div id="import-results" style="display: none; padding: 20px; border-radius: 8px; margin-top: 20px;">
+                    <!-- Import results will be displayed here -->
+                </div>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn btn-secondary" onclick="closeImportCSVModal()">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <!-- Vérification authentification serveur AVANT de charger l'app -->
+    <script src="auth-check-secure.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
