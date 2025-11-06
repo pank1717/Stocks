@@ -2649,9 +2649,18 @@ function filterLoans() {
 let currentQRCodeItem = null;
 
 function showQRCodeModal(itemId) {
-    const item = items.find(i => i.id === itemId);
-    if (!item) return;
+    console.log('showQRCodeModal called with ID:', itemId, 'Type:', typeof itemId);
+    console.log('Items available:', items.length);
+    console.log('QRCode library loaded:', typeof QRCode !== 'undefined');
 
+    const item = items.find(i => i.id === itemId || i.id == itemId);
+    if (!item) {
+        console.error('Item not found with ID:', itemId);
+        alert('Article introuvable (ID: ' + itemId + ')');
+        return;
+    }
+
+    console.log('Item found:', item.name);
     currentQRCodeItem = item;
 
     // Display item info
@@ -2679,10 +2688,22 @@ function showQRCodeModal(itemId) {
 
     // Clear previous QR code
     const qrcodeDisplay = document.getElementById('qrcode-display');
+    console.log('QR display element:', qrcodeDisplay);
     qrcodeDisplay.innerHTML = '';
 
     // Create canvas element
     const canvas = document.createElement('canvas');
+    console.log('Canvas created:', canvas);
+
+    // Check if QRCode is defined
+    if (typeof QRCode === 'undefined') {
+        console.error('QRCode library not loaded!');
+        qrcodeDisplay.innerHTML = '<p style="color: red;">Erreur: Bibliothèque QRCode non chargée</p>';
+        document.getElementById('qrcode-modal').classList.add('show');
+        return;
+    }
+
+    console.log('Generating QR code with data:', qrData);
 
     // Generate new QR code
     QRCode.toCanvas(canvas, qrData, {
@@ -2695,13 +2716,15 @@ function showQRCodeModal(itemId) {
     }, (error) => {
         if (error) {
             console.error('Error generating QR code:', error);
-            qrcodeDisplay.innerHTML = '<p style="color: red;">Erreur lors de la génération du code QR</p>';
+            qrcodeDisplay.innerHTML = '<p style="color: red;">Erreur lors de la génération du code QR: ' + error.message + '</p>';
             return;
         }
+        console.log('QR code generated successfully');
         qrcodeDisplay.appendChild(canvas);
     });
 
     document.getElementById('qrcode-modal').classList.add('show');
+    console.log('Modal should be visible now');
 }
 
 function closeQRCodeModal() {

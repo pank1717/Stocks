@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test QR Code</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            text-align: center;
+        }
+        #qrcode {
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test de génération QR Code</h1>
+
+    <button onclick="generateQR()">Générer un QR Code</button>
+
+    <div id="qrcode"></div>
+
+    <div id="status"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script>
+        function generateQR() {
+            const statusDiv = document.getElementById('status');
+            const qrcodeDiv = document.getElementById('qrcode');
+
+            // Vérifier si QRCode est chargé
+            if (typeof QRCode === 'undefined') {
+                statusDiv.innerHTML = '<p style="color: red;">❌ Bibliothèque QRCode non chargée!</p>';
+                return;
+            }
+
+            statusDiv.innerHTML = '<p style="color: blue;">⏳ Génération en cours...</p>';
+            qrcodeDiv.innerHTML = '';
+
+            // Créer un canvas
+            const canvas = document.createElement('canvas');
+
+            // Générer le QR code
+            QRCode.toCanvas(canvas, 'Test QR Code - Gestion Stock IT', {
+                width: 300,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            }, (error) => {
+                if (error) {
+                    console.error('Erreur QR:', error);
+                    statusDiv.innerHTML = '<p style="color: red;">❌ Erreur: ' + error.message + '</p>';
+                } else {
+                    qrcodeDiv.appendChild(canvas);
+                    statusDiv.innerHTML = '<p style="color: green;">✅ QR Code généré avec succès!</p>';
+                }
+            });
+        }
+
+        // Test au chargement
+        window.onload = function() {
+            if (typeof QRCode !== 'undefined') {
+                document.getElementById('status').innerHTML = '<p style="color: green;">✅ Bibliothèque QRCode chargée correctement</p>';
+            } else {
+                document.getElementById('status').innerHTML = '<p style="color: red;">❌ Bibliothèque QRCode NON chargée</p>';
+            }
+        };
+    </script>
+</body>
+</html>
