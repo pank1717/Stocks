@@ -1321,8 +1321,10 @@ function loadEmailSettings() {
 
 async function saveEmailSettings(event) {
     event.preventDefault();
+    console.log('saveEmailSettings called');
 
     const enabled = document.getElementById('email-enabled').checked;
+    console.log('Email enabled:', enabled);
 
     if (!enabled) {
         // Just disable emails
@@ -1348,6 +1350,7 @@ async function saveEmailSettings(event) {
     }
 
     // Collect settings
+    console.log('Collecting settings...');
     const config = {
         enabled: true,
         host: document.getElementById('smtp-host').value.trim(),
@@ -1359,11 +1362,22 @@ async function saveEmailSettings(event) {
         alertEmails: document.getElementById('alert-emails').value.split(',').map(e => e.trim()).filter(e => e)
     };
 
+    console.log('Config collected:', { ...config, pass: '***' });
+
     // Validate required fields
     if (!config.host || !config.user || !config.pass || !config.from || config.alertEmails.length === 0) {
+        console.error('Validation failed:', {
+            host: config.host,
+            user: config.user,
+            pass: config.pass ? 'present' : 'missing',
+            from: config.from,
+            alertEmails: config.alertEmails
+        });
         showToast('Erreur', 'Veuillez remplir tous les champs obligatoires', 'error');
         return;
     }
+
+    console.log('Validation passed, sending to API...');
 
     try {
         const response = await fetch(`${API_URL}/api/settings/email`, {
@@ -1372,8 +1386,16 @@ async function saveEmailSettings(event) {
             body: JSON.stringify(config)
         });
 
-        if (!response.ok) throw new Error('Failed to save settings');
+        console.log('API response status:', response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API error response:', errorText);
+            throw new Error('Failed to save settings: ' + response.status);
+        }
+
         const result = await response.json();
+        console.log('API result:', result);
 
         // Save to localStorage (except password)
         localStorage.setItem('email-enabled', 'true');
@@ -1384,6 +1406,7 @@ async function saveEmailSettings(event) {
         localStorage.setItem('smtp-from', config.from);
         localStorage.setItem('alert-emails', config.alertEmails.join(', '));
 
+        console.log('Settings saved to localStorage');
         showToast('Succès', 'Configuration email enregistrée avec succès', 'success');
         closeSettingsModal();
 
