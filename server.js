@@ -3,6 +3,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const cors = require('cors');
 const emailService = require('./email-service');
+const QRCode = require('qrcode');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -460,6 +461,32 @@ app.post('/api/email/send-alert', (req, res) => {
             res.json({ ...result, itemsCount: items.length });
         }
     );
+});
+
+// QR Code generation API
+app.post('/api/qrcode', async (req, res) => {
+    try {
+        const { data, width = 300 } = req.body;
+
+        if (!data) {
+            return res.status(400).json({ error: 'Missing data parameter' });
+        }
+
+        // Generate QR code as data URL
+        const dataURL = await QRCode.toDataURL(data, {
+            width: width,
+            margin: 2,
+            color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+            }
+        });
+
+        res.json({ success: true, dataURL });
+    } catch (error) {
+        console.error('Error generating QR code:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Serve index.html for root route

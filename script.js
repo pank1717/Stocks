@@ -2689,42 +2689,41 @@ function showQRCodeModal(itemId) {
     // Clear previous QR code
     const qrcodeDisplay = document.getElementById('qrcode-display');
     console.log('QR display element:', qrcodeDisplay);
-    qrcodeDisplay.innerHTML = '';
-
-    // Create canvas element
-    const canvas = document.createElement('canvas');
-    console.log('Canvas created:', canvas);
-
-    // Check if QRCode is defined
-    if (typeof QRCode === 'undefined') {
-        console.error('QRCode library not loaded!');
-        qrcodeDisplay.innerHTML = '<p style="color: red;">Erreur: Bibliothèque QRCode non chargée</p>';
-        document.getElementById('qrcode-modal').classList.add('show');
-        return;
-    }
+    qrcodeDisplay.innerHTML = '<p style="color: blue;">⏳ Génération du QR code...</p>';
 
     console.log('Generating QR code with data:', qrData);
 
-    // Generate new QR code
-    QRCode.toCanvas(canvas, qrData, {
-        width: 300,
-        margin: 2,
-        color: {
-            dark: '#000000',
-            light: '#FFFFFF'
-        }
-    }, (error) => {
-        if (error) {
-            console.error('Error generating QR code:', error);
-            qrcodeDisplay.innerHTML = '<p style="color: red;">Erreur lors de la génération du code QR: ' + error.message + '</p>';
-            return;
-        }
-        console.log('QR code generated successfully');
-        qrcodeDisplay.appendChild(canvas);
+    // Generate QR code via API
+    fetch(`${API_URL}/api/qrcode`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            data: qrData,
+            width: 300
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to generate QR code');
+        return response.json();
+    })
+    .then(result => {
+        console.log('QR code generated successfully via API');
+        const img = document.createElement('img');
+        img.src = result.dataURL;
+        img.alt = 'QR Code';
+        img.style.maxWidth = '100%';
+        qrcodeDisplay.innerHTML = '';
+        qrcodeDisplay.appendChild(img);
+    })
+    .catch(error => {
+        console.error('Error generating QR code:', error);
+        qrcodeDisplay.innerHTML = '<p style="color: red;">Erreur lors de la génération du code QR: ' + error.message + '</p>';
     });
 
     document.getElementById('qrcode-modal').classList.add('show');
-    console.log('Modal should be visible now');
+    console.log('Modal opened');
 }
 
 function closeQRCodeModal() {
@@ -2898,24 +2897,25 @@ async function printSelectedLabels() {
             url: window.location.href
         });
 
-        // Generate QR code as data URL
-        const canvas = document.createElement('canvas');
-
-        // Convert callback to promise
-        await new Promise((resolve, reject) => {
-            QRCode.toCanvas(canvas, qrData, {
-                width: 150,
-                margin: 1
-            }, (error) => {
-                if (error) reject(error);
-                else resolve();
-            });
+        // Generate QR code via API
+        const response = await fetch(`${API_URL}/api/qrcode`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                data: qrData,
+                width: 150
+            })
         });
+
+        if (!response.ok) throw new Error('Failed to generate QR code');
+        const result = await response.json();
 
         return {
             item,
             photo,
-            qrCodeData: canvas.toDataURL()
+            qrCodeData: result.dataURL
         };
     }));
 
