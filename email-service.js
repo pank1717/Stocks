@@ -26,7 +26,7 @@ class EmailService {
         this.config = { ...this.config, ...config };
 
         if (this.config.enabled && this.config.host && this.config.auth.user) {
-            this.transporter = nodemailer.createTransporter({
+            this.transporter = nodemailer.createTransport({
                 host: this.config.host,
                 port: this.config.port,
                 secure: this.config.secure,
