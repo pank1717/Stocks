@@ -228,7 +228,7 @@ async function exportToExcel() {
                 typeCell.fill = {
                     type: 'pattern',
                     pattern: 'solid',
-                    fgColor: 'FFFFD93D' }
+                    fgColor: { argb: 'FFFFD93D' }
                 };
             }
 
