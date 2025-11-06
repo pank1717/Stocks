@@ -2681,15 +2681,18 @@ function showQRCodeModal(itemId) {
     const qrcodeDisplay = document.getElementById('qrcode-display');
     qrcodeDisplay.innerHTML = '';
 
+    // Create canvas element
+    const canvas = document.createElement('canvas');
+
     // Generate new QR code
-    QRCode.toCanvas(qrData, {
+    QRCode.toCanvas(canvas, qrData, {
         width: 300,
         margin: 2,
         color: {
             dark: '#000000',
             light: '#FFFFFF'
         }
-    }, (error, canvas) => {
+    }, (error) => {
         if (error) {
             console.error('Error generating QR code:', error);
             qrcodeDisplay.innerHTML = '<p style="color: red;">Erreur lors de la génération du code QR</p>';
@@ -2874,9 +2877,16 @@ async function printSelectedLabels() {
 
         // Generate QR code as data URL
         const canvas = document.createElement('canvas');
-        await QRCode.toCanvas(canvas, qrData, {
-            width: 150,
-            margin: 1
+
+        // Convert callback to promise
+        await new Promise((resolve, reject) => {
+            QRCode.toCanvas(canvas, qrData, {
+                width: 150,
+                margin: 1
+            }, (error) => {
+                if (error) reject(error);
+                else resolve();
+            });
         });
 
         return {
