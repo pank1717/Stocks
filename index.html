@@ -123,7 +123,8 @@
         <section class="action-section">
             <button class="btn btn-primary" onclick="showAddItemModal()">➕ Ajouter un Article</button>
             <button class="btn btn-info" onclick="showLoansModal()">👤 Qui a quoi ?</button>
-            <button class="btn btn-success" onclick="exportToCSV()">📊 Exporter CSV</button>
+            <button class="btn btn-success" onclick="exportToExcel()">📊 Exporter Excel</button>
+            <button class="btn btn-success" onclick="exportToCSV()" style="font-size: 0.85rem;">📄 CSV</button>
             <button class="btn btn-success" onclick="printInventoryReport()" id="print-report-btn">📄 Imprimer rapport</button>
             <button class="btn btn-primary" onclick="showImportCSVModal()" id="import-csv-btn">📥 Importer CSV</button>
             <button class="btn btn-warning" onclick="showLabelPrintModal()">🏷️ Imprimer étiquettes</button>
@@ -1367,6 +1368,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <script src="script.js"></script>
+    <script src="excel-export.js"></script>
 </body>
 </html>
