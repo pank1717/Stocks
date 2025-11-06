@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Bouton Paramètres</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 5px;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        h1 {
+            color: #333;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-box">
+        <h1>🧪 Test du Bouton Paramètres</h1>
+
+        <p>Si vous voyez le bouton ci-dessous avec une roue d'engrenage ⚙️, c'est que ça fonctionne!</p>
+
+        <div style="padding: 20px; background: #e7f3ff; border-radius: 5px; margin: 20px 0;">
+            <button class="btn btn-secondary" onclick="alert('Le bouton fonctionne! ✅')">⚙️ Paramètres</button>
+        </div>
+
+        <p class="success">✅ Si vous voyez ce bouton, votre navigateur charge bien les fichiers!</p>
+
+        <hr style="margin: 30px 0;">
+
+        <h2>🔍 Maintenant testez la vraie page</h2>
+        <p>Cliquez sur ce lien pour aller sur la page principale:</p>
+        <a href="http://localhost:3000" style="font-size: 1.2rem; color: #667eea;">
+            👉 Ouvrir l'application principale
+        </a>
+
+        <div style="margin-top: 30px; padding: 15px; background: #fff3cd; border-radius: 5px;">
+            <strong>💡 Conseil:</strong> Sur la page principale, appuyez sur <kbd>Ctrl+Shift+R</kbd> (Windows/Linux)
+            ou <kbd>Cmd+Shift+R</kbd> (Mac) pour vider le cache du navigateur!
+        </div>
+    </div>
+</body>
+</html>
